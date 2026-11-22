@@ -26,9 +26,39 @@ export interface LabState {
   lastRejection: BondRejection | null;
   /** Исход последнего запуска реакции (FR-13…16). */
   reactionOutcome: RunResult | null;
+  /** Зона реакции (FR-13, v0.15). */
+  zone: ReactionZoneRect;
 }
 
 export type CommandResult = { ok: true } | { ok: false; rejection: BondRejection };
+
+/** Зона реакции (FR-13, v0.15): геометрия хранится в состоянии стола. */
+export interface ReactionZoneRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export const DEFAULT_ZONE: ReactionZoneRect = { x: 16, y: 430, width: 400, height: 250 };
+
+const ZONE_MIN_WIDTH = 200;
+const ZONE_MIN_HEIGHT = 140;
+
+/** Молекулы, чей центроид внутри зоны реакции — заморожены (FR-13, v0.15). */
+export function frozenMoleculeIds(state: LabState): Set<string> {
+  const zone = state.zone;
+  const frozen = new Set<string>();
+  for (const component of connectedComponents(state.atoms, state.bonds)) {
+    const points = component.atomIds.map((id) => state.atoms[id].position);
+    const cx = points.reduce((s, p) => s + p.x, 0) / points.length;
+    const cy = points.reduce((s, p) => s + p.y, 0) / points.length;
+    if (cx >= zone.x && cx <= zone.x + zone.width && cy >= zone.y && cy <= zone.y + zone.height) {
+      frozen.add(component.id);
+    }
+  }
+  return frozen;
+}
 
 type Listener = () => void;
 
@@ -43,6 +73,7 @@ export class LabStore {
     selectedMoleculeId: null,
     lastRejection: null,
     reactionOutcome: null,
+    zone: { ...DEFAULT_ZONE },
   };
   private listeners = new Set<Listener>();
 
@@ -79,12 +110,30 @@ export class LabStore {
     this.setState({ ...this.state, atoms: atomsRecord, bonds: bondsRecord, lastRejection: null });
   }
 
+  /** FR-13 (v0.15): перемещение зоны реакции. */
+  moveZoneBy(delta: Vec2): void {
+    const zone = { ...this.state.zone, x: this.state.zone.x + delta.x, y: this.state.zone.y + delta.y };
+    this.setState({ ...this.state, zone });
+  }
+
+  /** FR-13 (v0.15): изменение размера зоны реакции. */
+  resizeZone(width: number, height: number): void {
+    const zone = {
+      ...this.state.zone,
+      width: Math.max(ZONE_MIN_WIDTH, width),
+      height: Math.max(ZONE_MIN_HEIGHT, height),
+    };
+    this.setState({ ...this.state, zone });
+  }
+
   /** Перемещение атома вместе со всей его молекулой (связная группа — единый объект, 4.2). */
   moveMoleculeOf(atomId: string, delta: Vec2): void {
     const component = connectedComponents(this.state.atoms, this.state.bonds).find((c) =>
       c.atomIds.includes(atomId),
     );
     if (!component) return;
+    // FR-13 (v0.15): замороженные молекулы не перемещаются.
+    if (frozenMoleculeIds(this.state).has(component.id)) return;
     const atoms = { ...this.state.atoms };
     for (const id of component.atomIds) {
       const atom = atoms[id];
@@ -122,6 +171,8 @@ export class LabStore {
 
   /** FR-7 (v0.11): смена кратности/типа существующей связи из контекстного меню. */
   changeBond(bondId: string, order: BondOrder, kind: BondKind): CommandResult {
+    const frozenRejection = this.frozenBondRejection(bondId);
+    if (frozenRejection) return frozenRejection;
     const check = checkBondUpdate(this.state.atoms, this.state.bonds, bondId, order, kind);
     if (!check.ok) {
       this.setState({ ...this.state, lastRejection: check.rejection });
@@ -218,9 +269,26 @@ export class LabStore {
   /** FR-7: разрыв связи; молекула распадается на независимые части. */
   breakBond(bondId: string): void {
     if (!this.state.bonds[bondId]) return;
+    // FR-13 (v0.15): связи замороженных молекул не разрываются.
+    if (this.frozenBondRejection(bondId)) return;
     const bonds = { ...this.state.bonds };
     delete bonds[bondId];
     this.setState({ ...this.state, bonds, lastRejection: null });
+  }
+
+  /** FR-13 (v0.15): связь принадлежит замороженной молекуле → отказ с объяснением. */
+  private frozenBondRejection(bondId: string): CommandResult | null {
+    const bond = this.state.bonds[bondId];
+    if (!bond) return null;
+    const frozen = frozenMoleculeIds(this.state);
+    if (frozen.size === 0) return null;
+    const component = connectedComponents(this.state.atoms, this.state.bonds).find((c) =>
+      c.bondIds.includes(bondId),
+    );
+    if (!component || !frozen.has(component.id)) return null;
+    const result: CommandResult = { ok: false, rejection: { code: 'frozen-molecule' } };
+    this.setState({ ...this.state, lastRejection: { code: 'frozen-molecule' } });
+    return result;
   }
 
   /** FR-34 (приём FR-27): разобрать молекулу на атомы — удалить все её связи. */
