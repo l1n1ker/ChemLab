@@ -19,5 +19,10 @@ Runtime-зависимости:
 - jsdom (https://github.com/jsdom/jsdom) — MIT
 - Testing Library (@testing-library/react, jest-dom, user-event) — MIT
 
+Данные (снапшоты в репозитории, NFR-4):
+- komed3/periodic-table (https://github.com/komed3/periodic-table) — MIT;
+  источник позиций/категорий/фаз элементов в src/domain/data/periodicTable.ts
+  (снимок 2026-11-22, генератор tools/buildPeriodicTable.mjs; TR-3 — dev-time).
+
 Заимствованного кода на данный момент нет; вся химия и UI —
 собственная реализация по SPEC.md.
