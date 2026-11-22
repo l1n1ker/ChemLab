@@ -290,6 +290,74 @@ export const SUBSTANCES: Substance[] = [
       ],
     },
   },
+  // --- Дополнения v0.14: покрытие библиотеки реакций (п. 7.3) ---
+  {
+    id: 'caoh2', formula: 'Ca(OH)2', name: 'Гидроксид кальция', molarMass: mm([['Ca', 1], ['O', 2], ['H', 2]]),
+    class: 'base', stateAtSTP: 'solid',
+    properties: { density: 2.21, densityUnit: 'g/cm3' },
+    structure: {
+      atoms: [atom('Ca'), atom('O'), atom('H'), atom('O'), atom('H')],
+      bonds: [
+        bond(0, 1, 1, 'ionic'), bond(1, 2, 1),
+        bond(0, 3, 1, 'ionic'), bond(3, 4, 1),
+      ],
+    },
+  },
+  {
+    id: 'fecl2', formula: 'FeCl2', name: 'Хлорид железа(II)', molarMass: mm([['Fe', 1], ['Cl', 2]]),
+    class: 'salt', stateAtSTP: 'solid',
+    properties: { mp: 677, density: 3.16, densityUnit: 'g/cm3' },
+    structure: {
+      atoms: [atom('Fe'), atom('Cl'), atom('Cl')],
+      bonds: [bond(0, 1, 1, 'ionic'), bond(0, 2, 1, 'ionic')],
+    },
+  },
+  {
+    id: 'kcl', formula: 'KCl', name: 'Хлорид калия', molarMass: mm([['K', 1], ['Cl', 1]]),
+    class: 'salt', stateAtSTP: 'solid',
+    properties: { mp: 770, bp: 1420, density: 1.98, densityUnit: 'g/cm3' },
+    structure: { atoms: [atom('K'), atom('Cl')], bonds: [bond(0, 1, 1, 'ionic')] },
+  },
+  {
+    id: 'kbr', formula: 'KBr', name: 'Бромид калия', molarMass: mm([['K', 1], ['Br', 1]]),
+    class: 'salt', stateAtSTP: 'solid',
+    properties: { mp: 734, bp: 1435, density: 2.75, densityUnit: 'g/cm3' },
+    structure: { atoms: [atom('K'), atom('Br')], bonds: [bond(0, 1, 1, 'ionic')] },
+  },
+  {
+    id: 'br2', formula: 'Br2', name: 'Бром', molarMass: mm([['Br', 2]]),
+    class: 'simple', stateAtSTP: 'liquid',
+    properties: { mp: -7, bp: 59, density: 3.12, densityUnit: 'g/cm3' },
+    structure: {
+      atoms: [atom('Br', [-1.14, 0, 0]), atom('Br', [1.14, 0, 0])],
+      bonds: [bond(0, 1, 1)],
+    },
+  },
+  // Простые вещества в атомарной записи (реагенты стола, v0.14).
+  {
+    id: 'c', formula: 'C', name: 'Углерод', molarMass: mm([['C', 1]]),
+    class: 'simple', stateAtSTP: 'solid',
+    properties: { density: 2.26, densityUnit: 'g/cm3' },
+    structure: { atoms: [atom('C')], bonds: [] },
+  },
+  {
+    id: 's', formula: 'S', name: 'Сера', molarMass: mm([['S', 1]]),
+    class: 'simple', stateAtSTP: 'solid',
+    properties: { mp: 113, density: 2.07, densityUnit: 'g/cm3' },
+    structure: { atoms: [atom('S')], bonds: [] },
+  },
+  {
+    id: 'na', formula: 'Na', name: 'Натрий', molarMass: mm([['Na', 1]]),
+    class: 'simple', stateAtSTP: 'solid',
+    properties: { mp: 98, density: 0.97, densityUnit: 'g/cm3' },
+    structure: { atoms: [atom('Na')], bonds: [] },
+  },
+  {
+    id: 'fe', formula: 'Fe', name: 'Железо', molarMass: mm([['Fe', 1]]),
+    class: 'simple', stateAtSTP: 'solid',
+    properties: { mp: 1538, density: 7.87, densityUnit: 'g/cm3' },
+    structure: { atoms: [atom('Fe')], bonds: [] },
+  },
 ];
 
 export function getSubstance(id: string): Substance {
