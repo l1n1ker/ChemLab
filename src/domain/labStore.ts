@@ -132,6 +132,39 @@ export class LabStore {
     return { ok: true };
   }
 
+  /** FR-34 (v0.12): копия молекулы на столе — структурный дубликат со сдвигом. */
+  cloneMolecule(moleculeId: string, offset: Vec2 = { x: 70, y: 50 }): void {
+    const component = connectedComponents(this.state.atoms, this.state.bonds).find(
+      (c) => c.id === moleculeId,
+    );
+    if (!component) return;
+
+    const idMap = new Map<string, string>();
+    const atoms = { ...this.state.atoms };
+    for (const atomId of component.atomIds) {
+      const source = this.state.atoms[atomId];
+      const id = newId();
+      idMap.set(atomId, id);
+      atoms[id] = {
+        id,
+        element: source.element,
+        position: { x: source.position.x + offset.x, y: source.position.y + offset.y },
+      };
+    }
+    const bonds = { ...this.state.bonds };
+    for (const bondId of component.bondIds) {
+      const source = this.state.bonds[bondId];
+      const id = newId();
+      bonds[id] = {
+        id,
+        atomIds: [idMap.get(source.atomIds[0])!, idMap.get(source.atomIds[1])!],
+        order: source.order,
+        kind: source.kind,
+      };
+    }
+    this.setState({ ...this.state, atoms, bonds, lastRejection: null });
+  }
+
   /** FR-7: разрыв связи; молекула распадается на независимые части. */
   breakBond(bondId: string): void {
     if (!this.state.bonds[bondId]) return;

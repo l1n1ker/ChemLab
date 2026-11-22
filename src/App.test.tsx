@@ -419,3 +419,34 @@ describe('DR-4: ионная связь (UI, v0.11 — через меню св�
     expect(modal.textContent).toContain('Cl: −1');
   });
 });
+
+describe('v0.12: быстрое клонирование без магазина', () => {
+  it('пустой стол подсказывает про магазин (актуальный текст)', () => {
+    render(<App />);
+    expect(screen.getByText(/Нажмите «Магазин»/)).toBeInTheDocument();
+  });
+
+  it('FR-1: кнопка «+» на атоме добавляет его копию', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await takeAtoms(user, ['O']);
+
+    await user.click(within(atomByElement(container, 'O')).getByLabelText('Добавить копию атома'));
+
+    expect(atomsByElement(container, 'O')).toHaveLength(2);
+  });
+
+  it('FR-34: кнопка «+» в подписи молекулы клонирует молекулу целиком', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await buildWater(container, user);
+
+    const label = container.querySelector('[data-molecule-label]')!;
+    await user.click(within(label as HTMLElement).getByLabelText('Добавить копию молекулы'));
+
+    expect(atomNodes(container)).toHaveLength(6);
+    const labels = container.querySelectorAll('[data-molecule-label]');
+    expect(labels).toHaveLength(2);
+    for (const l of labels) expect(l.textContent).toContain('H2O');
+  });
+});

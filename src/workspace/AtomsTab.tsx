@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ELEMENTS } from '../domain/data/elements';
 import { PERIODIC_TABLE, type ElementCategory, type PeriodicEntry } from '../domain/data/periodicTable';
 import { t } from '../i18n/ru';
+import { elementColor } from './elementColors';
 import type { TableLayout } from './layouts';
 
 /**
@@ -36,18 +37,6 @@ const INITIAL_FILTERS: Filters = {
 
 function isActive(entry: PeriodicEntry): boolean {
   return entry.symbol in ELEMENTS;
-}
-
-/** Школьная окраска групп (FR-28): щелочные, щёлочноземельные, галогены, благородные… */
-function cellColor(entry: PeriodicEntry): string {
-  if (entry.fRow) return '#fbcfe8';
-  if (entry.iupacGroup === 1 && entry.number > 1) return '#fecaca';
-  if (entry.iupacGroup === 2) return '#fed7aa';
-  if (entry.iupacGroup === 17) return '#bbf7d0';
-  if (entry.iupacGroup === 18) return '#e9d5ff';
-  if (entry.category === 'metalloid') return '#fde68a';
-  if (entry.category === 'nonmetal') return '#a7f3d0';
-  return '#bfdbfe';
 }
 
 export function AtomsTab({ layout, onAdd, onInfo }: AtomsTabProps) {
@@ -207,7 +196,7 @@ export function AtomsTab({ layout, onAdd, onInfo }: AtomsTabProps) {
                   data-element-cell={entry.symbol}
                   data-dimmed={dimmed || undefined}
                   title={active ? entry.name : `${entry.name} — ${t('shop.locked')}`}
-                  style={{ gridColumn: col + 1, backgroundColor: cellColor(entry) }}
+                  style={{ gridColumn: col + 1, backgroundColor: elementColor(entry) }}
                   className={`relative flex min-h-11 cursor-pointer flex-col items-center justify-center rounded px-0.5 text-slate-900 transition-opacity ${
                     !active || dimmed ? 'opacity-25' : ''
                   } ${!active ? 'cursor-not-allowed' : ''}`}

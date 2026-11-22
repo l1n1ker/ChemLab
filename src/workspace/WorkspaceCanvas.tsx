@@ -5,12 +5,14 @@
 import { useRef, useState } from 'react';
 import { deriveMolecules, type LabState, type LabStore } from '../domain/labStore';
 import { getElement } from '../domain/data/elements';
+import { getPeriodicEntry } from '../domain/data/periodicTable';
 import { freeValence } from '../domain/validation';
 import { fmt, Formula } from '../graph/format';
 import { rejectionMessage } from '../i18n/rejectionMessage';
 import { t } from '../i18n/ru';
 import { AtomCardContent } from './AtomCard';
 import { BondLayer } from './BondLayer';
+import { elementColor } from './elementColors';
 
 /**
  * Рабочий стол 2D (SPEC.md 4.2): рендер узлов и жесты.
@@ -170,13 +172,11 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
               data-element={atom.element}
               role="button"
               tabIndex={0}
-              className={`absolute flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 border-slate-500 font-bold select-none ${
-                element.symbol === 'H' ? 'text-slate-900' : 'text-white'
-              }`}
+              className="absolute flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 border-slate-600 text-base font-bold text-slate-900 select-none"
               style={{
                 left: atom.position.x,
                 top: atom.position.y,
-                backgroundColor: element.cpkColor,
+                backgroundColor: elementColor(getPeriodicEntry(atom.element)),
                 touchAction: 'none',
               }}
               onPointerDown={(e) => onAtomPointerDown(e, atom.id)}
@@ -204,6 +204,24 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
                 style={{ touchAction: 'none' }}
                 onPointerDown={(e) => onHandlePointerDown(e, atom.id)}
               />
+              {/* FR-1 (v0.12): копия атома без магазина */}
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label={t('atom.clone')}
+                title={t('atom.clone')}
+                className="absolute -bottom-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full border border-slate-400 bg-emerald-600 text-[10px] font-bold text-white hover:bg-emerald-500"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  store.addAtom(atom.element, {
+                    x: atom.position.x + 60,
+                    y: atom.position.y + 44,
+                  });
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                +
+              </span>
             </div>
           );
         })}
@@ -235,6 +253,16 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
                   onClick={() => onInspect(molecule.id)}
                 >
                   {t('result.open')}
+                </button>
+                {/* FR-34 (v0.12): копия молекулы без магазина */}
+                <button
+                  type="button"
+                  aria-label={t('molecule.clone')}
+                  title={t('molecule.clone')}
+                  className="rounded bg-emerald-700 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-emerald-600"
+                  onClick={() => store.cloneMolecule(molecule.id)}
+                >
+                  +
                 </button>
               </div>
             );
