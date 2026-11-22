@@ -9,6 +9,7 @@ import { getElement } from '../domain/data/elements';
 import type { LabState } from '../domain/labStore';
 import type { MoleculeView } from '../domain/types';
 import { t } from '../i18n/ru';
+import { useTheme } from '../theme';
 import { computeGeometry } from './geometry';
 
 /**
@@ -29,6 +30,8 @@ function atomRadius(symbol: string): number {
 export function Inspector3D({ molecule, state }: Inspector3DProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [webglError, setWebglError] = useState(false);
+  // FR-38: фон 3D-сцены следует теме.
+  const { mode } = useTheme();
 
   const geometry = molecule
     ? computeGeometry(
@@ -50,7 +53,8 @@ export function Inspector3D({ molecule, state }: Inspector3DProps) {
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#0f172a');
+    const dark = document.documentElement.classList.contains('dark');
+    scene.background = new THREE.Color(dark ? '#0f172a' : '#f1f5f9');
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
     camera.position.set(0, 0, 6);
@@ -149,20 +153,20 @@ export function Inspector3D({ molecule, state }: Inspector3DProps) {
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [molecule, geometry, state]);
+  }, [molecule, geometry, state, mode]);
 
   return (
     <section aria-label={t('inspector.title')} className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-slate-700 px-4 py-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300">
+      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2 dark:border-slate-700">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
           {t('inspector.title')}
         </h2>
         {geometry && (
           <span
             className={`rounded px-2 py-0.5 text-xs ${
               geometry.schematic
-                ? 'bg-amber-900/50 text-amber-200'
-                : 'bg-emerald-900/50 text-emerald-200'
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200'
+                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200'
             }`}
           >
             {geometry.schematic ? t('inspector.schematic') : t('inspector.reference')}
@@ -171,12 +175,12 @@ export function Inspector3D({ molecule, state }: Inspector3DProps) {
       </div>
       <div ref={mountRef} className="relative min-h-0 flex-1">
         {!molecule && (
-          <p className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-slate-500">
+          <p className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-slate-400 dark:text-slate-500">
             {t('inspector.none')}
           </p>
         )}
         {webglError && (
-          <p className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-red-300">
+          <p className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-red-600 dark:text-red-300">
             {t('inspector.webglError')}
           </p>
         )}

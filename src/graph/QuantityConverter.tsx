@@ -92,19 +92,19 @@ export function QuantityConverter({ molarMass, isGas }: QuantityConverterProps) 
 
   return (
     <section aria-label={t('converter.title')} className="mt-4">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {t('converter.title')}
       </h3>
       <div className="mt-2 space-y-2">
         {fields.map(({ field, label }) => (
-          <label key={field} className="block text-xs text-slate-400">
+          <label key={field} className="block text-xs text-slate-500 dark:text-slate-400">
             {label}
             <input
               type="text"
               inputMode="decimal"
               value={values[field]}
               onChange={(e) => handleChange(field, e.target.value)}
-              className="mt-0.5 w-full rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-sm text-slate-100 focus:border-sky-400 focus:outline-none"
+              className="mt-0.5 w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 focus:border-sky-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             />
           </label>
         ))}

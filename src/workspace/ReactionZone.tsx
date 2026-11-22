@@ -31,12 +31,12 @@ function centroidInZone(molecule: MoleculeView, state: LabState): boolean {
 
 function EntryLine({ entry, highlight }: { entry: ReactionReportEntry; highlight?: boolean }) {
   return (
-    <li className={`flex justify-between gap-2 ${highlight ? 'font-semibold text-amber-300' : ''}`}>
+    <li className={`flex justify-between gap-2 ${highlight ? 'font-semibold text-amber-700 dark:text-amber-300' : ''}`}>
       <span>
         <Formula formula={entry.formula} /> {entry.name}
         {highlight ? ` ← ${t('reaction.limiting')}` : ''}
       </span>
-      <span className="text-slate-300">
+      <span className="text-slate-600 dark:text-slate-300">
         {t('reaction.units', { moles: entry.moles, grams: fmt(entry.grams, entry.grams < 10 ? 2 : 1) })}
       </span>
     </li>
@@ -46,12 +46,12 @@ function EntryLine({ entry, highlight }: { entry: ReactionReportEntry; highlight
 function Outcome({ outcome, onClose }: { outcome: RunResult; onClose: () => void }) {
   if (!outcome.ok) {
     return (
-      <div role="alert" className="absolute bottom-4 right-4 w-96 rounded-xl bg-slate-800 p-4 text-sm shadow-xl ring-1 ring-red-800">
-        <p className="font-semibold text-red-300">
+      <div role="alert" className="absolute bottom-4 right-4 w-96 rounded-xl bg-white p-4 text-sm shadow-xl ring-1 ring-red-300 dark:bg-slate-800 dark:ring-red-800">
+        <p className="font-semibold text-red-600 dark:text-red-300">
           {outcome.missing.length > 0 ? t('reaction.notEnough') : t('reaction.noReaction')}
         </p>
         {outcome.missing.length > 0 && (
-          <ul className="mt-1 text-slate-300">
+          <ul className="mt-1 text-slate-600 dark:text-slate-300">
             {outcome.missing.map((m) => (
               <li key={m.substanceId}>
                 <Formula formula={getSubstance(m.substanceId).formula} /> {getSubstance(m.substanceId).name}:{' '}
@@ -62,8 +62,8 @@ function Outcome({ outcome, onClose }: { outcome: RunResult; onClose: () => void
         )}
         {outcome.suggestions.length > 0 && (
           <div className="mt-2">
-            <p className="text-slate-400">{t('reaction.suggestions')}</p>
-            <ul className="mt-1 space-y-1 text-slate-300">
+            <p className="text-slate-500 dark:text-slate-400">{t('reaction.suggestions')}</p>
+            <ul className="mt-1 space-y-1 text-slate-600 dark:text-slate-300">
               {outcome.suggestions.map(({ reaction, missingSubstanceIds }) => (
                 <li key={reaction.id}>
                   {reaction.equation}
@@ -80,7 +80,7 @@ function Outcome({ outcome, onClose }: { outcome: RunResult; onClose: () => void
         )}
         <button
           type="button"
-          className="mt-3 rounded-md bg-slate-700 px-3 py-1 text-xs hover:bg-slate-600"
+          className="mt-3 rounded-md bg-slate-200 px-3 py-1 text-xs hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600"
           onClick={onClose}
         >
           {t('reaction.close')}
@@ -91,17 +91,17 @@ function Outcome({ outcome, onClose }: { outcome: RunResult; onClose: () => void
 
   const { report } = outcome;
   return (
-    <div role="dialog" aria-label={t('reaction.report')} className="absolute bottom-4 right-4 w-96 rounded-xl bg-slate-800 p-4 text-sm shadow-xl ring-1 ring-emerald-700">
-      <p className="font-semibold text-slate-100">{report.reaction.equation}</p>
-      <p className="text-xs text-slate-400">{t(`reaction.type.${report.reaction.type}`)}</p>
+    <div role="dialog" aria-label={t('reaction.report')} className="absolute bottom-4 right-4 w-96 rounded-xl bg-white p-4 text-sm shadow-xl ring-1 ring-emerald-300 dark:bg-slate-800 dark:ring-emerald-700">
+      <p className="font-semibold text-slate-900 dark:text-slate-100">{report.reaction.equation}</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{t(`reaction.type.${report.reaction.type}`)}</p>
 
-      <p className="mt-2 text-xs font-semibold uppercase text-slate-400">{t('reaction.consumed')}</p>
+      <p className="mt-2 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{t('reaction.consumed')}</p>
       <ul className="space-y-0.5">
         {report.consumed.map((e) => (
           <EntryLine key={e.substanceId} entry={e} highlight={e.substanceId === report.limitingSubstanceId} />
         ))}
       </ul>
-      <p className="mt-2 text-xs font-semibold uppercase text-slate-400">{t('reaction.produced')}</p>
+      <p className="mt-2 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{t('reaction.produced')}</p>
       <ul className="space-y-0.5">
         {report.produced.map((e) => (
           <EntryLine key={e.substanceId} entry={e} />
@@ -109,7 +109,7 @@ function Outcome({ outcome, onClose }: { outcome: RunResult; onClose: () => void
       </ul>
       {report.excess.length > 0 && (
         <>
-          <p className="mt-2 text-xs font-semibold uppercase text-slate-400">{t('reaction.excess')}</p>
+          <p className="mt-2 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{t('reaction.excess')}</p>
           <ul className="space-y-0.5">
             {report.excess.map((e) => (
               <EntryLine key={e.substanceId} entry={e} />
@@ -119,7 +119,7 @@ function Outcome({ outcome, onClose }: { outcome: RunResult; onClose: () => void
       )}
       <button
         type="button"
-        className="mt-3 rounded-md bg-slate-700 px-3 py-1 text-xs hover:bg-slate-600"
+        className="mt-3 rounded-md bg-slate-200 px-3 py-1 text-xs hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600"
         onClick={onClose}
       >
         {t('reaction.close')}
@@ -168,7 +168,7 @@ export function ReactionZone({ store, state, molecules }: ReactionZoneProps) {
     <>
       <div
         data-testid="reaction-zone"
-        className="pointer-events-none absolute rounded-xl border-2 border-dashed border-emerald-700/60"
+        className="pointer-events-none absolute rounded-xl border-2 border-dashed border-emerald-600/60 dark:border-emerald-700/60"
         style={{ left: zone.x, top: zone.y, width: zone.width, height: zone.height }}
       >
         <div
@@ -177,7 +177,7 @@ export function ReactionZone({ store, state, molecules }: ReactionZoneProps) {
           style={{ touchAction: 'none' }}
           onPointerDown={onHeaderPointerDown}
         >
-          <span className="text-xs font-semibold text-emerald-500 select-none">
+          <span className="text-xs font-semibold text-emerald-600 select-none dark:text-emerald-500">
             {t('reaction.zone')}
           </span>
           <button

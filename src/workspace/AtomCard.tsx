@@ -48,15 +48,15 @@ export function AtomCardContent({ symbol, freeValence, layoutId }: AtomCardConte
   }
 
   return (
-    <div className="w-60 rounded-lg bg-slate-800 p-3 text-sm shadow-xl ring-1 ring-slate-600">
-      <p className="mb-2 font-semibold text-slate-100">
+    <div className="w-60 rounded-lg bg-white p-3 text-sm shadow-xl ring-1 ring-slate-300 dark:bg-slate-800 dark:ring-slate-600">
+      <p className="mb-2 font-semibold text-slate-900 dark:text-slate-100">
         {entry.name} ({entry.symbol})
       </p>
       <dl className="space-y-1">
         {rows.map(([dt, dd]) => (
           <div key={dt} className="flex justify-between gap-2">
-            <dt className="text-slate-400">{dt}</dt>
-            <dd className="text-slate-100">{dd}</dd>
+            <dt className="text-slate-500 dark:text-slate-400">{dt}</dt>
+            <dd className="text-slate-900 dark:text-slate-100">{dd}</dd>
           </div>
         ))}
       </dl>

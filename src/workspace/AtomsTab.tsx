@@ -84,13 +84,13 @@ export function AtomsTab({ layout, onAdd, onInfo }: AtomsTabProps) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t('shop.search.placeholder')}
-          className="w-48 rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100 focus:border-sky-400 focus:outline-none"
+          className="w-48 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-slate-900 focus:border-sky-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
         <select
           aria-label={t('shop.filter.category')}
           value={filters.category}
           onChange={(e) => setFilters({ ...filters, category: e.target.value as Filters['category'] })}
-          className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100"
+          className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         >
           <option value="any">{t('shop.filter.category')}: {t('shop.filter.any')}</option>
           <option value="metal">{t('atomcard.category.metal')}</option>
@@ -101,7 +101,7 @@ export function AtomsTab({ layout, onAdd, onInfo }: AtomsTabProps) {
           aria-label={t('shop.filter.state')}
           value={filters.state}
           onChange={(e) => setFilters({ ...filters, state: e.target.value as Filters['state'] })}
-          className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100"
+          className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         >
           <option value="any">{t('shop.filter.state')}: {t('shop.filter.any')}</option>
           <option value="solid">{t('properties.state.solid')}</option>
@@ -112,7 +112,7 @@ export function AtomsTab({ layout, onAdd, onInfo }: AtomsTabProps) {
           aria-label={t('shop.filter.valence')}
           value={filters.valence}
           onChange={(e) => setFilters({ ...filters, valence: e.target.value as Filters['valence'] })}
-          className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100"
+          className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         >
           <option value="any">{t('shop.filter.valence')}: {t('shop.filter.any')}</option>
           {['1', '2', '3', '4'].map((v) => (
@@ -123,16 +123,16 @@ export function AtomsTab({ layout, onAdd, onInfo }: AtomsTabProps) {
           aria-label={t('shop.filter.availability')}
           value={filters.availability}
           onChange={(e) => setFilters({ ...filters, availability: e.target.value as Filters['availability'] })}
-          className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100"
+          className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         >
           <option value="any">{t('shop.filter.availability')}: {t('shop.filter.any')}</option>
           <option value="available">{t('shop.filter.available')}</option>
           <option value="locked">{t('shop.filter.locked')}</option>
         </select>
-        <span className="text-slate-400">{t('shop.filter.matches', { count: activeMatches })}</span>
+        <span className="text-slate-500 dark:text-slate-400">{t('shop.filter.matches', { count: activeMatches })}</span>
         <button
           type="button"
-          className="rounded-md bg-slate-800 px-2 py-1.5 text-slate-300 hover:bg-slate-700"
+          className="rounded-md bg-slate-200 px-2 py-1.5 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           onClick={resetFilters}
         >
           {t('shop.filter.reset')}
@@ -140,7 +140,7 @@ export function AtomsTab({ layout, onAdd, onInfo }: AtomsTabProps) {
       </div>
 
       {rejectedHint && (
-        <div role="status" className="mb-2 flex items-center gap-2 rounded-md bg-slate-800 px-3 py-1.5 text-xs text-amber-200">
+        <div role="status" className="mb-2 flex items-center gap-2 rounded-md bg-amber-100 px-3 py-1.5 text-xs text-amber-800 dark:bg-slate-800 dark:text-amber-200">
           {t('shop.filter.rejected')}
           <button type="button" className="underline" onClick={resetFilters}>
             {t('shop.filter.reset')}
@@ -161,7 +161,7 @@ export function AtomsTab({ layout, onAdd, onInfo }: AtomsTabProps) {
             aria-pressed={colSel === i + 1}
             onClick={() => setColSel(colSel === i + 1 ? null : i + 1)}
             className={`rounded px-0.5 py-1 text-center text-[10px] font-semibold ${
-              colSel === i + 1 ? 'bg-sky-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+              colSel === i + 1 ? 'bg-sky-600 text-white' : 'text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'
             }`}
           >
             {label}
@@ -177,7 +177,7 @@ export function AtomsTab({ layout, onAdd, onInfo }: AtomsTabProps) {
               disabled={row > 7}
               onClick={() => setRowSel(rowSel === row ? null : row)}
               className={`rounded px-1 text-[10px] font-semibold ${
-                rowSel === row ? 'bg-sky-600 text-white' : 'text-slate-400 hover:bg-slate-800'
+                rowSel === row ? 'bg-sky-600 text-white' : 'text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'
               } ${row > 7 ? 'opacity-40' : ''}`}
             >
               {row > 7 ? '*' : row}

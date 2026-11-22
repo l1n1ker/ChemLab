@@ -76,10 +76,10 @@ export function ShopModal({ open, onClose, layout, onLayoutChange, onDone, onEle
       <div
         role="dialog"
         aria-label={t('shop.open')}
-        className="flex max-h-[90vh] w-[min(1100px,95vw)] flex-col rounded-xl bg-slate-900 shadow-2xl"
+        className="flex max-h-[90vh] w-[min(1100px,95vw)] flex-col rounded-xl bg-white shadow-2xl dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-4 border-b border-slate-700 px-4 py-2">
+        <div className="flex items-center gap-4 border-b border-slate-200 px-4 py-2 dark:border-slate-700">
           <div role="tablist" className="flex gap-1">
             {(['atoms', 'substances'] as const).map((tabId) => (
               <button
@@ -88,7 +88,7 @@ export function ShopModal({ open, onClose, layout, onLayoutChange, onDone, onEle
                 aria-selected={tab === tabId}
                 onClick={() => setTab(tabId)}
                 className={`rounded-md px-3 py-1.5 text-sm font-semibold ${
-                  tab === tabId ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  tab === tabId ? 'bg-sky-500 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
                 {t(tabId === 'atoms' ? 'shop.tab.atoms' : 'shop.tab.substances')}
@@ -107,7 +107,7 @@ export function ShopModal({ open, onClose, layout, onLayoutChange, onDone, onEle
                     aria-pressed={layout.id === id}
                     onClick={() => onLayoutChange(id)}
                     className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
-                      layout.id === id ? 'bg-violet-500 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      layout.id === id ? 'bg-violet-500 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                     }`}
                   >
                     {t(l.nameKey)}
@@ -120,7 +120,7 @@ export function ShopModal({ open, onClose, layout, onLayoutChange, onDone, onEle
           <button
             type="button"
             aria-label={t('shop.close')}
-            className="ml-auto rounded-md bg-slate-800 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-700"
+            className="ml-auto rounded-md bg-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             onClick={() => {
               setCart([]);
               onClose();
@@ -139,11 +139,11 @@ export function ShopModal({ open, onClose, layout, onLayoutChange, onDone, onEle
         </div>
 
         {/* Единая корзина (FR-28/FR-31) */}
-        <div className="flex items-center gap-2 border-t border-slate-700 px-4 py-2">
-          <span className="text-sm text-slate-400">{t('shop.cart')}:</span>
+        <div className="flex items-center gap-2 border-t border-slate-200 px-4 py-2 dark:border-slate-700">
+          <span className="text-sm text-slate-500 dark:text-slate-400">{t('shop.cart')}:</span>
           <div className="flex min-h-8 flex-1 flex-wrap items-center gap-1.5">
             {chips.length === 0 && (
-              <span className="text-xs text-slate-500">{t('shop.cart.empty')}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">{t('shop.cart.empty')}</span>
             )}
             {chips.map(({ key, count }) => {
               const [kind, id] = key.split(':');
@@ -153,7 +153,7 @@ export function ShopModal({ open, onClose, layout, onLayoutChange, onDone, onEle
                   type="button"
                   title={key}
                   onClick={() => decrement(key)}
-                  className="rounded-full bg-slate-700 px-2.5 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-600"
+                  className="rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-800 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
                 >
                   {kind === 'substance' ? <Formula formula={getSubstance(id).formula} /> : id}
                   {count > 1 ? ` ×${count}` : ''}
@@ -164,7 +164,7 @@ export function ShopModal({ open, onClose, layout, onLayoutChange, onDone, onEle
           {chips.length > 0 && (
             <button
               type="button"
-              className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+              className="rounded-md bg-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               onClick={() => setCart([])}
             >
               {t('shop.cart.clear')}

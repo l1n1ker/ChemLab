@@ -47,7 +47,7 @@ export function BondLayer({ atoms, bonds, onMenu }: BondLayerProps) {
                 y1={a.position.y + ny * offset}
                 x2={b.position.x + nx * offset}
                 y2={b.position.y + ny * offset}
-                stroke={bond.kind === 'ionic' ? '#c4b5fd' : '#94a3b8'}
+                className={bond.kind === 'ionic' ? 'stroke-violet-500 dark:stroke-violet-300' : 'stroke-slate-500 dark:stroke-slate-400'}
                 strokeWidth={2.5}
                 strokeDasharray={bond.kind === 'ionic' ? '7 5' : undefined}
               />

@@ -53,13 +53,13 @@ export function SubstancesTab({ onAdd }: SubstancesTabProps) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t('shop.search.placeholder')}
-          className="w-48 rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100 focus:border-sky-400 focus:outline-none"
+          className="w-48 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-slate-900 focus:border-sky-400 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
         <select
           aria-label={t('shop.filter.class')}
           value={classFilter}
           onChange={(e) => setClassFilter(e.target.value as typeof classFilter)}
-          className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100"
+          className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         >
           <option value="any">{t('shop.filter.class')}: {t('shop.filter.any')}</option>
           {CLASS_KEYS.map((cls) => (
@@ -70,7 +70,7 @@ export function SubstancesTab({ onAdd }: SubstancesTabProps) {
           aria-label={t('shop.filter.containsElement')}
           value={elementFilter}
           onChange={(e) => setElementFilter(e.target.value)}
-          className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100"
+          className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         >
           <option value="any">{t('shop.filter.containsElement')}: {t('shop.filter.any')}</option>
           {CATALOG_ELEMENTS.map((symbol) => (
@@ -81,14 +81,14 @@ export function SubstancesTab({ onAdd }: SubstancesTabProps) {
           aria-label={t('shop.filter.state')}
           value={stateFilter}
           onChange={(e) => setStateFilter(e.target.value as typeof stateFilter)}
-          className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100"
+          className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         >
           <option value="any">{t('shop.filter.state')}: {t('shop.filter.any')}</option>
           <option value="solid">{t('properties.state.solid')}</option>
           <option value="liquid">{t('properties.state.liquid')}</option>
           <option value="gas">{t('properties.state.gas')}</option>
         </select>
-        <span className="text-slate-400">{t('shop.filter.matches', { count: matchCount })}</span>
+        <span className="text-slate-500 dark:text-slate-400">{t('shop.filter.matches', { count: matchCount })}</span>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -102,22 +102,22 @@ export function SubstancesTab({ onAdd }: SubstancesTabProps) {
               data-dimmed={dimmed || undefined}
               aria-disabled={dimmed}
               onClick={() => !dimmed && onAdd(substance.id)}
-              className={`flex flex-col items-start gap-1 rounded-lg bg-slate-800 p-3 text-left transition-opacity hover:bg-slate-700 ${
+              className={`flex flex-col items-start gap-1 rounded-lg bg-white p-3 text-left ring-1 ring-slate-200 transition-opacity hover:bg-slate-50 dark:bg-slate-800 dark:ring-0 dark:hover:bg-slate-700 ${
                 dimmed ? 'pointer-events-none opacity-25' : ''
               }`}
             >
-              <span className="text-base font-semibold text-slate-100">
+              <span className="text-base font-semibold text-slate-900 dark:text-slate-100">
                 <Formula formula={substance.formula} />
               </span>
-              <span className="text-xs text-slate-300">{substance.name}</span>
+              <span className="text-xs text-slate-600 dark:text-slate-300">{substance.name}</span>
               <span className="flex gap-1 text-[10px]">
                 {substance.class && (
-                  <span className="rounded bg-slate-700 px-1.5 py-0.5 text-slate-300">
+                  <span className="rounded bg-slate-200 px-1.5 py-0.5 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                     {t(`properties.class.${substance.class}`)}
                   </span>
                 )}
                 {substance.stateAtSTP && (
-                  <span className="rounded bg-slate-700 px-1.5 py-0.5 text-slate-300">
+                  <span className="rounded bg-slate-200 px-1.5 py-0.5 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                     {t(`properties.state.${substance.stateAtSTP}`)}
                   </span>
                 )}

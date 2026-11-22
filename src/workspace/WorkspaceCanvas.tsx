@@ -105,7 +105,7 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
 
   return (
     <section aria-label={t('workspace.title')} className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b border-slate-700 px-4 py-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2 dark:border-slate-700">
         <button
           type="button"
           className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500"
@@ -121,7 +121,7 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
           innerRef(el);
         }}
         data-testid="workspace"
-        className="relative min-h-0 flex-1 overflow-hidden bg-slate-900"
+        className="relative min-h-0 flex-1 overflow-hidden bg-white dark:bg-slate-900"
         onClick={(e) => {
           const target = e.target as HTMLElement;
           if (
@@ -136,7 +136,7 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
         }}
       >
         {Object.keys(state.atoms).length === 0 && (
-          <p className="absolute inset-0 flex items-center justify-center text-slate-500">
+          <p className="absolute inset-0 flex items-center justify-center text-slate-400 dark:text-slate-500">
             {t('workspace.empty')}
           </p>
         )}
@@ -173,7 +173,7 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
               data-element={atom.element}
               role="button"
               tabIndex={0}
-              className="absolute flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 border-slate-600 text-base font-bold text-slate-900 select-none"
+              className="absolute flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 border-slate-400 text-base font-bold text-slate-900 select-none dark:border-slate-600"
               style={{
                 left: atom.position.x,
                 top: atom.position.y,
@@ -239,18 +239,18 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
               <div
                 key={molecule.id}
                 data-molecule-label={molecule.id}
-                className="absolute flex -translate-x-1/2 items-center gap-1.5 rounded-md bg-slate-800/90 px-2 py-0.5 text-xs text-slate-200"
+                className="absolute flex -translate-x-1/2 items-center gap-1.5 rounded-md bg-white/90 px-2 py-0.5 text-xs text-slate-800 ring-1 ring-slate-300 dark:bg-slate-800/90 dark:text-slate-200 dark:ring-0"
                 style={{ left: cx, top: bottom }}
               >
                 <span className="font-semibold">
                   <Formula formula={molecule.formula} />
                 </span>
-                <span className="text-slate-400">
+                <span className="text-slate-500 dark:text-slate-400">
                   {fmt(molecule.molarMass, 3)} {t('properties.molarMass.unit')}
                 </span>
                 <button
                   type="button"
-                  className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] hover:bg-slate-600"
+                  className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600"
                   onClick={() => onInspect(molecule.id)}
                 >
                   {t('result.open')}
@@ -280,7 +280,7 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
               data-bond-menu
               role="menu"
               aria-label={t('bond.menu.title')}
-              className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-lg bg-slate-800 p-1.5 shadow-xl ring-1 ring-slate-600"
+              className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-lg bg-white p-1.5 shadow-xl ring-1 ring-slate-300 dark:bg-slate-800 dark:ring-slate-600"
               style={{ left: mid.x, top: mid.y }}
             >
               <span className="px-1 text-[10px] text-slate-400">{t('bond.menu.order')}:</span>
@@ -294,7 +294,7 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
                   className={`h-7 w-7 rounded text-xs font-bold ${
                     bond.kind === 'covalent' && bond.order === order
                       ? 'bg-sky-500 text-white'
-                      : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                      : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
                   }`}
                   onClick={() => {
                     store.changeBond(bond.id, order, 'covalent');
@@ -311,7 +311,7 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
                 className={`h-7 rounded px-2 text-xs font-semibold ${
                   bond.kind === 'ionic'
                     ? 'bg-violet-500 text-white'
-                    : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'
                 }`}
                 onClick={() => {
                   store.changeBond(bond.id, 1, 'ionic');
