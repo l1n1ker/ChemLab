@@ -16,8 +16,7 @@ export type BondRejectionCode =
   | 'valence-exceeded'
   | 'monovalent'
   | 'bond-kind-mismatch'
-  | 'ionic-exists'
-  | 'frozen-molecule';
+  | 'ionic-exists';
 
 export interface BondRejection {
   code: BondRejectionCode;

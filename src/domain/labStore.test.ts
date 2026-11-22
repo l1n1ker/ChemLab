@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { describe, expect, it } from 'vitest';
-import { LabStore, deriveMolecules, frozenMoleculeIds } from './labStore';
+import { LabStore, deriveMolecules } from './labStore';
 import { rejectionMessage } from '../i18n/rejectionMessage';
 
 describe('DR-1/FR-4: создание связей и объединение в молекулу', () => {
@@ -185,60 +185,35 @@ describe('Выбор молекулы', () => {
   });
 });
 
-describe('FR-13 (v0.15): заморозка молекул в зоне реакции', () => {
+describe('FR-13 (v0.16): зона реакции — без заморозки, молекулы свободны', () => {
   function labWithWaterInZone(): LabStore {
     const lab = new LabStore();
     lab.addSubstance('h2o', { x: 60, y: 470 }); // центроид внутри DEFAULT_ZONE
     return lab;
   }
 
-  it('молекула с центроидом в зоне — заморожена, вне зоны — нет', () => {
+  it('молекулу внутри зоны можно свободно переместить (в т.ч. вынести из зоны)', () => {
     const lab = labWithWaterInZone();
-    const frozen = frozenMoleculeIds(lab.getSnapshot());
-    expect(frozen.size).toBe(1);
-
-    lab.addSubstance('o2', { x: 600, y: 100 });
-    const frozen2 = frozenMoleculeIds(lab.getSnapshot());
-    expect(frozen2.size).toBe(1);
-  });
-
-  it('замороженную молекулу нельзя переместить', () => {
-    const lab = labWithWaterInZone();
-    const before = Object.values(lab.getSnapshot().atoms).map((a) => ({ ...a.position }));
-    const anyAtom = Object.keys(lab.getSnapshot().atoms)[0];
-    lab.moveMoleculeOf(anyAtom, { x: 500, y: -400 });
-    const after = Object.values(lab.getSnapshot().atoms).map((a) => a.position);
-    expect(after).toEqual(before);
-  });
-
-  it('разрыв связи замороженной молекулы отклоняется с кодом frozen-molecule', () => {
-    const lab = labWithWaterInZone();
-    const bondId = Object.keys(lab.getSnapshot().bonds)[0];
-    const bondCount = Object.keys(lab.getSnapshot().bonds).length;
-    lab.breakBond(bondId);
-    expect(Object.keys(lab.getSnapshot().bonds)).toHaveLength(bondCount);
-    expect(lab.getSnapshot().lastRejection?.code).toBe('frozen-molecule');
-  });
-
-  it('смена кратности связи замороженной молекулы отклоняется', () => {
-    const lab = new LabStore();
-    lab.addSubstance('co2', { x: 60, y: 470 });
-    const bondId = Object.keys(lab.getSnapshot().bonds)[0];
-    const result = lab.changeBond(bondId, 1, 'covalent');
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.rejection.code).toBe('frozen-molecule');
-  });
-
-  it('уведённая зона освобождает молекулу — её снова можно двигать', () => {
-    const lab = labWithWaterInZone();
-    lab.moveZoneBy({ x: 0, y: 500 }); // зона ушла из-под молекулы
-    expect(frozenMoleculeIds(lab.getSnapshot()).size).toBe(0);
-
     const anyAtom = Object.keys(lab.getSnapshot().atoms)[0];
     const before = lab.getSnapshot().atoms[anyAtom].position;
-    lab.moveMoleculeOf(anyAtom, { x: 30, y: 20 });
+    lab.moveMoleculeOf(anyAtom, { x: 500, y: -400 });
     const after = lab.getSnapshot().atoms[anyAtom].position;
-    expect(after).toEqual({ x: before.x + 30, y: before.y + 20 });
+    expect(after).toEqual({ x: before.x + 500, y: before.y - 400 });
+  });
+
+  it('связь молекулы внутри зоны разрывается, кратность меняется по обычным правилам', () => {
+    const lab = labWithWaterInZone();
+    const bondId = Object.keys(lab.getSnapshot().bonds)[0];
+    lab.breakBond(bondId);
+    expect(Object.keys(lab.getSnapshot().bonds)).toHaveLength(1);
+    expect(lab.getSnapshot().lastRejection).toBeNull();
+
+    const co2lab = new LabStore();
+    co2lab.addSubstance('co2', { x: 60, y: 470 });
+    const bondId2 = Object.keys(co2lab.getSnapshot().bonds)[0];
+    // Обычная валидация DR-1 продолжает работать: двойную C=O в тройную нельзя.
+    const result = co2lab.changeBond(bondId2, 3, 'covalent');
+    expect(result.ok).toBe(false);
   });
 
   it('moveZoneBy/resizeZone меняют геометрию зоны; минимальный размер ограничен', () => {
