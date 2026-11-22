@@ -7,19 +7,26 @@ import { deriveMolecules, type LabState, type LabStore } from '../domain/labStor
 import { getElement } from '../domain/data/elements';
 import type { BondKind, BondOrder } from '../domain/types';
 import { freeValence } from '../domain/validation';
+import { fmt, Formula } from '../graph/format';
 import { rejectionMessage } from '../i18n/rejectionMessage';
 import { t } from '../i18n/ru';
+import { AtomCardContent } from './AtomCard';
 import { BondLayer } from './BondLayer';
 
 /**
  * Рабочий стол 2D (SPEC.md 4.2): рендер узлов и жесты.
  * Никакой химии внутри — только команды в LabStore (раздел 9).
+ * Клик по атому — карточка (FR-33); двойной клик — модалка результата (FR-34);
+ * у молекул — компактная подпись (формула + молярная масса).
  */
 
 interface WorkspaceCanvasProps {
   store: LabStore;
   state: LabState;
   innerRef: (el: HTMLDivElement | null) => void;
+  layoutId: string;
+  onOpenShop: () => void;
+  onInspect: (moleculeId: string) => void;
 }
 
 const ORDER_KEYS = [
@@ -28,23 +35,27 @@ const ORDER_KEYS = [
   { order: 3, key: 'workspace.bondOrder.triple' },
 ] as const;
 
-export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps) {
+export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, onInspect }: WorkspaceCanvasProps) {
   const [bondOrder, setBondOrder] = useState<BondOrder>(1);
   const [bondKind, setBondKind] = useState<BondKind>('covalent');
   const [bondDrag, setBondDrag] = useState<{ fromId: string; x: number; y: number } | null>(null);
+  const [atomCardId, setAtomCardId] = useState<string | null>(null);
   const bondDragRef = useRef(bondDrag);
   bondDragRef.current = bondDrag;
 
   const localRef = useRef<HTMLDivElement | null>(null);
   const molecules = deriveMolecules(state);
-  const selected = molecules.find((m) => m.id === state.selectedMoleculeId) ?? null;
+
+  function moleculeOf(atomId: string) {
+    return molecules.find((m) => m.atomIds.includes(atomId)) ?? null;
+  }
 
   function toLocal(clientX: number, clientY: number) {
     const rect = localRef.current?.getBoundingClientRect();
     return { x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) };
   }
 
-  // FR-1: перемещение — указатель на атоме; связная группа движется как единая молекула.
+  // Перемещение: указатель на атоме; связная группа движется как единая молекула.
   function onAtomPointerDown(e: React.PointerEvent, atomId: string) {
     e.stopPropagation();
     const drag = { lastX: e.clientX, lastY: e.clientY, moved: false };
@@ -59,7 +70,10 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
-      if (!drag.moved && !bondDragRef.current) store.selectMoleculeOf(atomId);
+      // FR-33: клик без перемещения — карточка атома.
+      if (!drag.moved && !bondDragRef.current) {
+        setAtomCardId((current) => (current === atomId ? null : atomId));
+      }
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -68,6 +82,7 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
   // FR-4: протягивание связи от «ручки связи» к другому атому.
   function onHandlePointerDown(e: React.PointerEvent, fromId: string) {
     e.stopPropagation();
+    setAtomCardId(null);
     setBondDrag({ fromId, ...toLocal(e.clientX, e.clientY) });
     const onMove = (ev: PointerEvent) =>
       setBondDrag({ fromId, ...toLocal(ev.clientX, ev.clientY) });
@@ -88,11 +103,19 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
   }
 
   const dragSource = bondDrag ? state.atoms[bondDrag.fromId] : null;
+  const cardAtom = atomCardId ? state.atoms[atomCardId] : null;
 
   return (
     <section aria-label={t('workspace.title')} className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-slate-700 px-4 py-2">
-        <span className="text-sm text-slate-300">{t('workspace.bondOrder')}:</span>
+        <button
+          type="button"
+          className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500"
+          onClick={onOpenShop}
+        >
+          {t('shop.open')}
+        </button>
+        <span className="ml-4 text-sm text-slate-300">{t('workspace.bondOrder')}:</span>
         {ORDER_KEYS.map(({ order, key }) => (
           <button
             key={order}
@@ -137,8 +160,8 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
         className="relative min-h-0 flex-1 overflow-hidden bg-slate-900"
         onClick={(e) => {
           const target = e.target as HTMLElement;
-          if (!target.closest('[data-atom-id]') && !target.closest('[data-bond-id]')) {
-            store.selectMoleculeOf(null);
+          if (!target.closest('[data-atom-id]') && !target.closest('[data-atom-card]')) {
+            setAtomCardId(null);
           }
         }}
       >
@@ -166,7 +189,6 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
 
         {Object.values(state.atoms).map((atom) => {
           const element = getElement(atom.element);
-          const isSelected = selected?.atomIds.includes(atom.id) ?? false;
           return (
             <div
               key={atom.id}
@@ -174,9 +196,9 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
               data-element={atom.element}
               role="button"
               tabIndex={0}
-              className={`absolute flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 font-bold select-none ${
-                isSelected ? 'border-sky-400 ring-2 ring-sky-400/50' : 'border-slate-500'
-              } ${element.symbol === 'H' ? 'text-slate-900' : 'text-white'}`}
+              className={`absolute flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full border-2 border-slate-500 font-bold select-none ${
+                element.symbol === 'H' ? 'text-slate-900' : 'text-white'
+              }`}
               style={{
                 left: atom.position.x,
                 top: atom.position.y,
@@ -185,6 +207,13 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
               }}
               onPointerDown={(e) => onAtomPointerDown(e, atom.id)}
               onPointerUp={() => onAtomPointerUp(atom.id)}
+              onDoubleClick={() => {
+                const molecule = moleculeOf(atom.id);
+                if (molecule) {
+                  setAtomCardId(null);
+                  onInspect(molecule.id);
+                }
+              }}
             >
               {element.symbol}
               {/* FR-3: свободные валентности */}
@@ -204,6 +233,53 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
             </div>
           );
         })}
+
+        {/* FR-34: компактные подписи молекул (формула + молярная масса) */}
+        {molecules
+          .filter((m) => m.bondIds.length > 0)
+          .map((molecule) => {
+            const xs = molecule.atomIds.map((id) => state.atoms[id].position.x);
+            const ys = molecule.atomIds.map((id) => state.atoms[id].position.y);
+            const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+            const bottom = Math.max(...ys) + 34;
+            return (
+              <div
+                key={molecule.id}
+                data-molecule-label={molecule.id}
+                className="absolute flex -translate-x-1/2 items-center gap-1.5 rounded-md bg-slate-800/90 px-2 py-0.5 text-xs text-slate-200"
+                style={{ left: cx, top: bottom }}
+              >
+                <span className="font-semibold">
+                  <Formula formula={molecule.formula} />
+                </span>
+                <span className="text-slate-400">
+                  {fmt(molecule.molarMass, 3)} {t('properties.molarMass.unit')}
+                </span>
+                <button
+                  type="button"
+                  className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] hover:bg-slate-600"
+                  onClick={() => onInspect(molecule.id)}
+                >
+                  {t('result.open')}
+                </button>
+              </div>
+            );
+          })}
+
+        {/* FR-33: карточка атома — поповер, не модалка */}
+        {cardAtom && (
+          <div
+            data-atom-card
+            className="absolute z-10"
+            style={{ left: cardAtom.position.x + 30, top: cardAtom.position.y - 20 }}
+          >
+            <AtomCardContent
+              symbol={cardAtom.element}
+              freeValence={freeValence(cardAtom, state.bonds)}
+              layoutId={layoutId}
+            />
+          </div>
+        )}
 
         {state.lastRejection && (
           <div

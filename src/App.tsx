@@ -4,70 +4,40 @@
 
 import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { deriveMolecules, LabStore } from './domain/labStore';
-import type { Vec2 } from './domain/types';
-import { PropertiesPanel } from './graph/PropertiesPanel';
+import { ResultModal } from './graph/ResultModal';
 import { t } from './i18n/ru';
-import { Inspector3D } from './inspector3d/Inspector3D';
-import { AtomPalette } from './workspace/AtomPalette';
-import { SubstancePalette } from './workspace/SubstancePalette';
+import { AtomCardContent } from './workspace/AtomCard';
+import { getLayout } from './workspace/layouts';
+import { placeCart } from './workspace/placement';
+import { ShopModal, type CartEntry } from './workspace/ShopModal';
 import { WorkspaceCanvas } from './workspace/WorkspaceCanvas';
-
-/** Полезная нагрузка перетаскивания из магазина: что бросить на стол. */
-interface DragPayload {
-  label: string;
-  drop: (position: Vec2) => void;
-}
 
 export function App() {
   const [store] = useState(() => new LabStore());
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   const molecules = useMemo(() => deriveMolecules(state), [state]);
-  const selected = molecules.find((m) => m.id === state.selectedMoleculeId) ?? null;
+
+  const [shopOpen, setShopOpen] = useState(false);
+  // FR-30: выбор раскладки запоминается в пределах сессии.
+  const [layoutId, setLayoutId] = useState('mendeleev');
+  const [inspectedId, setInspectedId] = useState<string | null>(null);
+  const [infoSymbol, setInfoSymbol] = useState<string | null>(null);
 
   const workspaceEl = useRef<HTMLDivElement | null>(null);
-  const [ghost, setGhost] = useState<{ payload: DragPayload; x: number; y: number } | null>(null);
+  const inspected = molecules.find((m) => m.id === inspectedId) ?? null;
 
-  // Свободное место на столе для кликового добавления.
-  function freePosition(): Vec2 {
-    const count = Object.keys(store.getSnapshot().atoms).length;
-    return { x: 100 + (count % 6) * 80, y: 100 + Math.floor(count / 6) * 90 };
-  }
-
-  // FR-1/FR-2: клик/Enter — объект появляется на столе.
-  function takeAtom(element: string) {
-    store.addAtom(element, freePosition());
-  }
-
-  function takeSubstance(substanceId: string) {
-    store.addSubstance(substanceId, freePosition());
-  }
-
-  // FR-1/FR-2: перетаскивание из магазина на стол.
-  function startPaletteDrag(payload: DragPayload, e: React.PointerEvent) {
-    setGhost({ payload, x: e.clientX, y: e.clientY });
-    let moved = false;
-    const onMove = (ev: PointerEvent) => {
-      moved = true;
-      setGhost({ payload, x: ev.clientX, y: ev.clientY });
-    };
-    const onUp = (ev: PointerEvent) => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      setGhost(null);
-      if (!moved) return;
-      const rect = workspaceEl.current?.getBoundingClientRect();
-      const inside =
-        rect &&
-        ev.clientX >= rect.left &&
-        ev.clientX <= rect.right &&
-        ev.clientY >= rect.top &&
-        ev.clientY <= rect.bottom;
-      if (inside) {
-        payload.drop({ x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+  // FR-28/FR-31: «Готово» — корзина размещается рядком от верхнего левого угла.
+  function handleCartDone(cart: CartEntry[]) {
+    const occupied = Object.values(store.getSnapshot().atoms).map((a) => a.position);
+    const items = cart.map((entry) => ({ width: entry.kind === 'substance' ? 200 : 60 }));
+    const positions = placeCart(items, occupied, workspaceEl.current?.clientWidth || 800);
+    cart.forEach((entry, i) => {
+      if (entry.kind === 'element') {
+        store.addAtom(entry.id, positions[i]);
+      } else {
+        store.addSubstance(entry.id, positions[i]);
       }
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    });
   }
 
   return (
@@ -77,49 +47,48 @@ export function App() {
       </header>
 
       <main className="flex min-h-0 flex-1">
-        <aside className="flex w-60 shrink-0 flex-col divide-y divide-slate-800 overflow-y-auto border-r border-slate-800">
-          <AtomPalette
-            onTake={takeAtom}
-            onDragStart={(element, e) =>
-              startPaletteDrag({ label: element, drop: (pos) => store.addAtom(element, pos) }, e)
-            }
-          />
-          <SubstancePalette
-            onTake={takeSubstance}
-            onDragStart={(substanceId, e) =>
-              startPaletteDrag(
-                { label: substanceId, drop: (pos) => store.addSubstance(substanceId, pos) },
-                e,
-              )
-            }
-          />
-        </aside>
-
         <WorkspaceCanvas
           store={store}
           state={state}
+          layoutId={layoutId}
           innerRef={(el) => {
             workspaceEl.current = el;
           }}
+          onOpenShop={() => setShopOpen(true)}
+          onInspect={setInspectedId}
         />
-
-        <aside className="flex w-84 shrink-0 flex-col border-l border-slate-800">
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <PropertiesPanel molecule={selected} />
-          </div>
-          <div className="h-80 shrink-0 border-t border-slate-800">
-            <Inspector3D molecule={selected} state={state} />
-          </div>
-        </aside>
       </main>
 
-      {ghost && (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed z-50 flex h-12 min-w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-sky-400 px-2 font-bold opacity-80"
-          style={{ left: ghost.x, top: ghost.y }}
-        >
-          {ghost.payload.label}
+      <ShopModal
+        open={shopOpen}
+        onClose={() => setShopOpen(false)}
+        layout={getLayout(layoutId)}
+        onLayoutChange={setLayoutId}
+        onDone={handleCartDone}
+        onElementInfo={setInfoSymbol}
+      />
+
+      <ResultModal
+        molecule={inspected}
+        state={state}
+        onClose={() => setInspectedId(null)}
+        onDismantle={(id) => {
+          store.dismantleMolecule(id);
+          setInspectedId(null);
+        }}
+      />
+
+      {/* FR-33: карточка элемента из магазина (иконка ℹ) */}
+      {infoSymbol && (
+        <div className="fixed right-4 top-16 z-50" data-atom-card>
+          <AtomCardContent symbol={infoSymbol} layoutId={layoutId} />
+          <button
+            type="button"
+            className="mt-1 w-full rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+            onClick={() => setInfoSymbol(null)}
+          >
+            {t('result.close')}
+          </button>
         </div>
       )}
     </div>
