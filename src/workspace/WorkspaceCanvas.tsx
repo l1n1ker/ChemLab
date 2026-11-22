@@ -13,6 +13,7 @@ import { t } from '../i18n/ru';
 import { AtomCardContent } from './AtomCard';
 import { BondLayer } from './BondLayer';
 import { elementColor } from './elementColors';
+import { ReactionZone } from './ReactionZone';
 
 /**
  * Рабочий стол 2D (SPEC.md 4.2): рендер узлов и жесты.
@@ -364,6 +365,9 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
             </button>
           </div>
         )}
+
+        {/* FR-13…17: зона реакции */}
+        <ReactionZone store={store} state={state} molecules={molecules} />
       </div>
     </section>
   );

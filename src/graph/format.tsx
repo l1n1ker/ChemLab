@@ -2,9 +2,9 @@
 // Copyright (C) 2026 ChemLab contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-/** Химическая формула с нижними индексами: H2O → H₂O. */
+/** Химическая формула с нижними индексами: H2O → H₂O, Ca(OH)2 → Ca(OH)₂. */
 export function Formula({ formula }: { formula: string }) {
-  const parts = formula.match(/[A-Z][a-z]?|\d+/g) ?? [];
+  const parts = formula.match(/[A-Z][a-z]?|\d+|[()]/g) ?? [];
   return (
     <>
       {parts.map((part, i) =>

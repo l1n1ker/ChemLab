@@ -450,3 +450,70 @@ describe('v0.12: быстрое клонирование без магазина
     for (const l of labels) expect(l.textContent).toContain('H2O');
   });
 });
+
+describe('FR-13…17 / US-3: зона реакции', () => {
+  function dragBy(atomNode: HTMLElement, dx: number, dy: number) {
+    fireEvent.pointerDown(atomNode, { clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: dx, clientY: dy });
+    fireEvent.pointerUp(window, { clientX: dx, clientY: dy });
+  }
+
+  async function placeSubstances(user: ReturnType<typeof userEvent.setup>, ids: string[]) {
+    await openShop(user);
+    await user.click(screen.getByRole('tab', { name: 'Вещества' }));
+    for (const id of ids) {
+      await user.click(card(id));
+    }
+    await user.click(screen.getByRole('button', { name: 'Готово' }));
+  }
+
+  it('кнопка запуска неактивна, пока зона пуста', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await placeSubstances(user, ['h2']);
+    expect(screen.getByRole('button', { name: 'Запустить реакцию' })).toBeDisabled();
+  });
+
+  it('US-3: 2 H₂ + 1 O₂ в зоне → 2 H₂O на столе, отчёт с массами и избытком', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await placeSubstances(user, ['h2', 'h2', 'o2']);
+
+    // Порядок атомов = порядок добавления: [h2, h2, o2] по 2 атома.
+    // Тащим первый атом каждой молекулы — молекула движется целиком.
+    let nodes = atomNodes(container);
+    dragBy(nodes[0], 0, 420);
+    nodes = atomNodes(container);
+    dragBy(nodes[2], 0, 420);
+    nodes = atomNodes(container);
+    dragBy(nodes[4], -100, 420);
+
+    await user.click(screen.getByRole('button', { name: 'Запустить реакцию' }));
+
+    const report = screen.getByRole('dialog', { name: 'Отчёт о реакции' });
+    expect(report.textContent).toContain('2H2 + O2 → 2H2O');
+    expect(report.textContent).toContain('Получено');
+    expect(report.textContent).toContain('2 моль');
+    expect(report.textContent).toContain('36,0');
+
+    const labels = container.querySelectorAll('[data-molecule-label]');
+    expect(labels).toHaveLength(2);
+    for (const label of labels) expect(label.textContent).toContain('H2O');
+  });
+
+  it('FR-16: только H₂ в зоне → подсказка «не хватает: Кислород»', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await placeSubstances(user, ['h2']);
+    const hydrogen = atomByElement(container, 'H');
+    dragBy(hydrogen, 0, 420);
+
+    await user.click(screen.getByRole('button', { name: 'Запустить реакцию' }));
+
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toContain('Реакция не найдена');
+    expect(alert.textContent).toContain('не хватает: Кислород');
+    // Ничего не изъято.
+    expect(atomNodes(container)).toHaveLength(2);
+  });
+});
