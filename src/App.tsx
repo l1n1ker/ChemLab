@@ -4,11 +4,19 @@
 
 import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { deriveMolecules, LabStore } from './domain/labStore';
+import type { Vec2 } from './domain/types';
 import { PropertiesPanel } from './graph/PropertiesPanel';
 import { t } from './i18n/ru';
 import { Inspector3D } from './inspector3d/Inspector3D';
 import { AtomPalette } from './workspace/AtomPalette';
+import { SubstancePalette } from './workspace/SubstancePalette';
 import { WorkspaceCanvas } from './workspace/WorkspaceCanvas';
+
+/** Полезная нагрузка перетаскивания из магазина: что бросить на стол. */
+interface DragPayload {
+  label: string;
+  drop: (position: Vec2) => void;
+}
 
 export function App() {
   const [store] = useState(() => new LabStore());
@@ -17,21 +25,30 @@ export function App() {
   const selected = molecules.find((m) => m.id === state.selectedMoleculeId) ?? null;
 
   const workspaceEl = useRef<HTMLDivElement | null>(null);
-  const [ghost, setGhost] = useState<{ element: string; x: number; y: number } | null>(null);
+  const [ghost, setGhost] = useState<{ payload: DragPayload; x: number; y: number } | null>(null);
 
-  // FR-1: клик/Enter — атом появляется на столе в свободном месте.
-  function takeAtom(element: string) {
+  // Свободное место на столе для кликового добавления.
+  function freePosition(): Vec2 {
     const count = Object.keys(store.getSnapshot().atoms).length;
-    store.addAtom(element, { x: 100 + (count % 6) * 80, y: 100 + Math.floor(count / 6) * 90 });
+    return { x: 100 + (count % 6) * 80, y: 100 + Math.floor(count / 6) * 90 };
   }
 
-  // FR-1: перетаскивание из магазина на стол.
-  function startPaletteDrag(element: string, e: React.PointerEvent) {
-    setGhost({ element, x: e.clientX, y: e.clientY });
+  // FR-1/FR-2: клик/Enter — объект появляется на столе.
+  function takeAtom(element: string) {
+    store.addAtom(element, freePosition());
+  }
+
+  function takeSubstance(substanceId: string) {
+    store.addSubstance(substanceId, freePosition());
+  }
+
+  // FR-1/FR-2: перетаскивание из магазина на стол.
+  function startPaletteDrag(payload: DragPayload, e: React.PointerEvent) {
+    setGhost({ payload, x: e.clientX, y: e.clientY });
     let moved = false;
     const onMove = (ev: PointerEvent) => {
       moved = true;
-      setGhost({ element, x: ev.clientX, y: ev.clientY });
+      setGhost({ payload, x: ev.clientX, y: ev.clientY });
     };
     const onUp = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', onMove);
@@ -46,7 +63,7 @@ export function App() {
         ev.clientY >= rect.top &&
         ev.clientY <= rect.bottom;
       if (inside) {
-        store.addAtom(element, { x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+        payload.drop({ x: ev.clientX - rect.left, y: ev.clientY - rect.top });
       }
     };
     window.addEventListener('pointermove', onMove);
@@ -60,8 +77,22 @@ export function App() {
       </header>
 
       <main className="flex min-h-0 flex-1">
-        <aside className="w-60 shrink-0 overflow-y-auto border-r border-slate-800">
-          <AtomPalette onTake={takeAtom} onDragStart={startPaletteDrag} />
+        <aside className="flex w-60 shrink-0 flex-col divide-y divide-slate-800 overflow-y-auto border-r border-slate-800">
+          <AtomPalette
+            onTake={takeAtom}
+            onDragStart={(element, e) =>
+              startPaletteDrag({ label: element, drop: (pos) => store.addAtom(element, pos) }, e)
+            }
+          />
+          <SubstancePalette
+            onTake={takeSubstance}
+            onDragStart={(substanceId, e) =>
+              startPaletteDrag(
+                { label: substanceId, drop: (pos) => store.addSubstance(substanceId, pos) },
+                e,
+              )
+            }
+          />
         </aside>
 
         <WorkspaceCanvas
@@ -85,10 +116,10 @@ export function App() {
       {ghost && (
         <div
           aria-hidden
-          className="pointer-events-none fixed z-50 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-sky-400 font-bold opacity-80"
+          className="pointer-events-none fixed z-50 flex h-12 min-w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-sky-400 px-2 font-bold opacity-80"
           style={{ left: ghost.x, top: ghost.y }}
         >
-          {ghost.element}
+          {ghost.payload.label}
         </div>
       )}
     </div>

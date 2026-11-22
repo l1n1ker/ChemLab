@@ -5,7 +5,7 @@
 import { useRef, useState } from 'react';
 import { deriveMolecules, type LabState, type LabStore } from '../domain/labStore';
 import { getElement } from '../domain/data/elements';
-import type { BondOrder } from '../domain/types';
+import type { BondKind, BondOrder } from '../domain/types';
 import { freeValence } from '../domain/validation';
 import { rejectionMessage } from '../i18n/rejectionMessage';
 import { t } from '../i18n/ru';
@@ -30,6 +30,7 @@ const ORDER_KEYS = [
 
 export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps) {
   const [bondOrder, setBondOrder] = useState<BondOrder>(1);
+  const [bondKind, setBondKind] = useState<BondKind>('covalent');
   const [bondDrag, setBondDrag] = useState<{ fromId: string; x: number; y: number } | null>(null);
   const bondDragRef = useRef(bondDrag);
   bondDragRef.current = bondDrag;
@@ -82,7 +83,7 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
   function onAtomPointerUp(atomId: string) {
     const current = bondDragRef.current;
     if (current && current.fromId !== atomId) {
-      store.createBond(current.fromId, atomId, bondOrder);
+      store.createBond(current.fromId, atomId, bondKind === 'ionic' ? 1 : bondOrder, bondKind);
     }
   }
 
@@ -97,10 +98,13 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
             key={order}
             type="button"
             aria-label={t(key)}
-            aria-pressed={bondOrder === order}
-            onClick={() => setBondOrder(order)}
+            aria-pressed={bondKind === 'covalent' && bondOrder === order}
+            onClick={() => {
+              setBondKind('covalent');
+              setBondOrder(order);
+            }}
             className={`h-8 w-8 rounded-md font-semibold ${
-              bondOrder === order
+              bondKind === 'covalent' && bondOrder === order
                 ? 'bg-sky-500 text-white'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
@@ -108,6 +112,20 @@ export function WorkspaceCanvas({ store, state, innerRef }: WorkspaceCanvasProps
             {order}
           </button>
         ))}
+        {/* DR-4: ионная связь — явный режим (v0.6, Q1) */}
+        <button
+          type="button"
+          aria-label={t('workspace.bondKind.ionic')}
+          aria-pressed={bondKind === 'ionic'}
+          onClick={() => setBondKind('ionic')}
+          className={`h-8 rounded-md px-2 text-sm font-semibold ${
+            bondKind === 'ionic'
+              ? 'bg-violet-500 text-white'
+              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+          }`}
+        >
+          ⇄
+        </button>
       </div>
 
       <div

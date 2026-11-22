@@ -34,17 +34,20 @@ export function BondLayer({ atoms, bonds, onBreak }: BondLayerProps) {
         const len = Math.hypot(dx, dy) || 1;
         const nx = (-dy / len) * 1;
         const ny = (dx / len) * 1;
+        // DR-4: ионная связь — одинарная пунктирная линия, кратность неприменима.
+        const offsets = bond.kind === 'ionic' ? [0] : OFFSETS[bond.order];
         return (
           <g key={bond.id}>
-            {OFFSETS[bond.order].map((offset) => (
+            {offsets.map((offset) => (
               <line
                 key={offset}
                 x1={a.position.x + nx * offset}
                 y1={a.position.y + ny * offset}
                 x2={b.position.x + nx * offset}
                 y2={b.position.y + ny * offset}
-                stroke="#94a3b8"
+                stroke={bond.kind === 'ionic' ? '#c4b5fd' : '#94a3b8'}
                 strokeWidth={2.5}
+                strokeDasharray={bond.kind === 'ionic' ? '7 5' : undefined}
               />
             ))}
             <line

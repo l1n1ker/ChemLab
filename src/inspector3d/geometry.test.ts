@@ -111,3 +111,39 @@ describe('FR-11/R2: эвристическая геометрия помечае
     expect(angle).toBeCloseTo(120, 1);
   });
 });
+
+describe('FR-11: геометрия M1', () => {
+  it('аммиак — треугольная пирамида, ~107,8°', () => {
+    const n = atom('N');
+    const hs = [atom('H'), atom('H'), atom('H')];
+    const result = computeGeometry(
+      [n, ...hs],
+      hs.map((h) => bond(n, h, 1)),
+    );
+
+    expect(result.schematic).toBe(false);
+    const angle = angleDeg(
+      result.positions.get(hs[0].id)!,
+      result.positions.get(n.id)!,
+      result.positions.get(hs[1].id)!,
+    );
+    expect(angle).toBeCloseTo(107.8, 1);
+  });
+
+  it('SO₃ — плоский треугольник, 120°', () => {
+    const s = atom('S');
+    const os_ = [atom('O'), atom('O'), atom('O')];
+    const result = computeGeometry(
+      [s, ...os_],
+      os_.map((o) => bond(s, o, 2)),
+    );
+
+    expect(result.schematic).toBe(false);
+    const angle = angleDeg(
+      result.positions.get(os_[0].id)!,
+      result.positions.get(s.id)!,
+      result.positions.get(os_[1].id)!,
+    );
+    expect(angle).toBeCloseTo(120, 1);
+  });
+});
