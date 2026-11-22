@@ -518,7 +518,7 @@ describe('FR-13…17 / US-3: зона реакции', () => {
   });
 });
 
-describe('FR-13 (v0.15): зона перетаскивается, растягивается, молекулы заморожены', () => {
+describe('FR-13 (v0.15/v0.16): зона перетаскивается и растягивается, молекулы свободны', () => {
   function dragBy(node: HTMLElement, dx: number, dy: number) {
     fireEvent.pointerDown(node, { clientX: 0, clientY: 0 });
     fireEvent.pointerMove(window, { clientX: dx, clientY: dy });
@@ -557,35 +557,28 @@ describe('FR-13 (v0.15): зона перетаскивается, растяги
     expect(zone.style.height).toBe('140px');
   });
 
-  it('молекула в зоне заморожена: не двигается, показывается индикатор; уведённая зона её освобождает', async () => {
+  it('молекулу можно вытащить из зоны — тогда она не участвует в реакции', async () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
-    await placeSubstances(user, ['h2o']);
+    await placeSubstances(user, ['h2o', 'h2']);
 
-    // Затаскиваем воду в зону.
-    let atom = atomNodes(container)[0];
-    dragBy(atom, 0, 420);
-    atom = atomNodes(container)[0];
-    const frozenLeft = atom.style.left;
-    const frozenTop = atom.style.top;
+    // Затаскиваем обе молекулы в зону.
+    dragBy(atomNodes(container)[0], 0, 420);
+    dragBy(atomNodes(container)[3], 0, 420);
 
-    expect(screen.getByTestId('reaction-zone-header').textContent).toContain('заморожено: 1');
+    // Вытаскиваем воду обратно: молекула движется свободно (v0.16, отмена заморозки).
+    const waterAtom = atomNodes(container)[0];
+    const beforeTop = waterAtom.style.top;
+    dragBy(waterAtom, 0, -420);
+    expect(atomNodes(container)[0].style.top).not.toBe(beforeTop);
 
-    // Пытаемся сдвинуть — молекула стоит на месте.
-    dragBy(atom, 300, -300);
-    atom = atomNodes(container)[0];
-    expect(atom.style.left).toBe(frozenLeft);
-    expect(atom.style.top).toBe(frozenTop);
-
-    // Уводим зону за заголовок — молекула освобождается.
-    dragBy(screen.getByTestId('reaction-zone-header'), 0, 500);
-    expect(screen.getByTestId('reaction-zone-header').textContent).not.toContain('заморожено');
-    atom = atomNodes(container)[0];
-    dragBy(atom, 30, 20);
-    expect(atomNodes(container)[0].style.left).not.toBe(frozenLeft);
+    // Запуск: в зоне только H₂ — реакция не найдена, вода осталась на столе.
+    await user.click(screen.getByRole('button', { name: 'Запустить реакцию' }));
+    expect(screen.getByRole('alert').textContent).toContain('Реакция не найдена');
+    expect(atomNodes(container)).toHaveLength(5);
   });
 
-  it('удаление связи замороженной молекулы отклоняется с объяснением', async () => {
+  it('связь молекулы внутри зоны удаляется через меню как обычно', async () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
     await placeSubstances(user, ['h2o']);
@@ -594,8 +587,9 @@ describe('FR-13 (v0.15): зона перетаскивается, растяги
     await user.click(screen.getAllByLabelText('Связь (клик — меню)')[0]);
     await user.click(screen.getByRole('menuitem', { name: 'Удалить связь' }));
 
-    expect(screen.getByRole('alert').textContent).toContain('заморожена');
-    // Обе связи на месте.
-    expect(screen.getAllByLabelText('Связь (клик — меню)')).toHaveLength(2);
+    // Одна связь разорвана, подпись пересчиталась в HO.
+    expect(screen.getAllByLabelText('Связь (клик — меню)')).toHaveLength(1);
+    const labels = container.querySelectorAll('[data-molecule-label]');
+    expect(labels[0].textContent).toContain('HO');
   });
 });

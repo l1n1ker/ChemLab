@@ -2,7 +2,7 @@
 // Copyright (C) 2026 ChemLab contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { frozenMoleculeIds, type LabState, type LabStore } from '../domain/labStore';
+import type { LabState, LabStore } from '../domain/labStore';
 import type { MoleculeView } from '../domain/types';
 import type { ReactionReportEntry, RunResult } from '../domain/reactionEngine';
 import { getSubstance } from '../domain/data/substances';
@@ -11,8 +11,8 @@ import { t } from '../i18n/ru';
 
 /**
  * FR-13…17: зона реакции на столе + отчёт.
- * v0.15: зону можно перетаскивать за заголовок и растягивать за угол;
- * молекулы с центроидом внутри зоны заморожены (не двигаются, связи не рвутся).
+ * v0.15: зону можно перетаскивать за заголовок и растягивать за угол.
+ * v0.16: принадлежность зоне — по центроиду в момент запуска, без ограничений на молекулы.
  */
 
 interface ReactionZoneProps {
@@ -131,7 +131,6 @@ function Outcome({ outcome, onClose }: { outcome: RunResult; onClose: () => void
 export function ReactionZone({ store, state, molecules }: ReactionZoneProps) {
   const zone = state.zone;
   const reactants = molecules.filter((m) => centroidInZone(m, state));
-  const frozenCount = frozenMoleculeIds(state).size;
 
   // v0.15: перетаскивание зоны за заголовок.
   function onHeaderPointerDown(e: React.PointerEvent) {
@@ -180,9 +179,6 @@ export function ReactionZone({ store, state, molecules }: ReactionZoneProps) {
         >
           <span className="text-xs font-semibold text-emerald-500 select-none">
             {t('reaction.zone')}
-            {frozenCount > 0 && (
-              <span className="ml-2 text-sky-300">❄ {t('reaction.frozen', { count: frozenCount })}</span>
-            )}
           </span>
           <button
             type="button"

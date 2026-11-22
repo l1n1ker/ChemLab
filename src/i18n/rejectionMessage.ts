@@ -16,8 +16,6 @@ export function rejectionMessage(rejection: BondRejection): string {
       return t('error.bond-kind-mismatch');
     case 'ionic-exists':
       return t('error.ionic-exists');
-    case 'frozen-molecule':
-      return t('error.frozen-molecule');
     case 'monovalent':
       return rejection.element === 'H'
         ? t('error.monovalent.H')
