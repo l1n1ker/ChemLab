@@ -250,7 +250,7 @@ describe('FR-4/FR-5: связи на столе', () => {
     createBond(h1, oxygen);
 
     expect(screen.getByRole('alert').textContent).toContain('Водород одновалентен');
-    expect(screen.getAllByLabelText('Связь (клик — разорвать)')).toHaveLength(1);
+    expect(screen.getAllByLabelText('Связь (клик — меню)')).toHaveLength(1);
   });
 
   it('третий H к кислороду воды отклоняется с объяснением', async () => {
@@ -268,19 +268,53 @@ describe('FR-4/FR-5: связи на столе', () => {
   });
 });
 
-describe('FR-7: разрыв связи', () => {
-  it('клик по связи разрывает её, подписи пересчитываются', async () => {
+describe('FR-7: контекстное меню связи (v0.11)', () => {
+  it('клик по связи открывает меню; «Удалить связь» разрывает её, подписи пересчитываются', async () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
     await buildWater(container, user);
 
-    await user.click(screen.getAllByLabelText('Связь (клик — разорвать)')[0]);
+    await user.click(screen.getAllByLabelText('Связь (клик — меню)')[0]);
+    expect(screen.getByRole('menu', { name: 'Связь' })).toBeInTheDocument();
 
-    expect(screen.getAllByLabelText('Связь (клик — разорвать)')).toHaveLength(1);
+    await user.click(screen.getByRole('menuitem', { name: 'Удалить связь' }));
+
+    expect(screen.getAllByLabelText('Связь (клик — меню)')).toHaveLength(1);
     // Осталась молекула HO — одна подпись вместо H₂O.
     const labels = container.querySelectorAll('[data-molecule-label]');
     expect(labels).toHaveLength(1);
     expect(labels[0].textContent).toContain('HO');
+  });
+
+  it('смена кратности через меню: O–O → O=O распознаётся как кислород', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await takeAtoms(user, ['O', 'O']);
+    const oxygens = atomsByElement(container, 'O');
+    createBond(oxygens[0], oxygens[1]);
+
+    // Свежая связь — одинарная: подпись «O2» есть, вещество ещё не распознано.
+    await user.click(screen.getByLabelText('Связь (клик — меню)'));
+    await user.click(screen.getByRole('menuitem', { name: 'Двойная' }));
+
+    inspect(oxygens[0]);
+    const modal = screen.getByRole('dialog', { name: 'Просмотр результата' });
+    expect(modal.textContent).toContain('Кислород');
+  });
+
+  it('смена кратности валидируется: O–H в воде нельзя сделать двойной', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await buildWater(container, user);
+
+    await user.click(screen.getAllByLabelText('Связь (клик — меню)')[0]);
+    await user.click(screen.getByRole('menuitem', { name: 'Двойная' }));
+
+    expect(screen.getByRole('alert').textContent).toContain(
+      'У атома O уже заняты все валентности (2 из 2)',
+    );
+    // Связь осталась одинарной.
+    expect(container.querySelector('[data-molecule-label]')!.textContent).toContain('H2O');
   });
 });
 
@@ -348,7 +382,7 @@ describe('FR-34: модалка «Просмотр результата»', () =
 
     expect(screen.queryByRole('dialog', { name: 'Просмотр результата' })).not.toBeInTheDocument();
     expect(atomNodes(container)).toHaveLength(3);
-    expect(screen.queryAllByLabelText('Связь (клик — разорвать)')).toHaveLength(0);
+    expect(screen.queryAllByLabelText('Связь (клик — меню)')).toHaveLength(0);
     expect(container.querySelectorAll('[data-molecule-label]')).toHaveLength(0);
   });
 
@@ -366,14 +400,16 @@ describe('FR-34: модалка «Просмотр результата»', () =
   });
 });
 
-describe('DR-4: ионная связь (UI, явный режим)', () => {
-  it('Na–Cl в ионном режиме → «Хлорид натрия», соль, степени окисления', async () => {
+describe('DR-4: ионная связь (UI, v0.11 — через меню связи)', () => {
+  it('Na–Cl, смена типа на «Ионная» в меню → «Хлорид натрия», соль, степени окисления', async () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
     await takeAtoms(user, ['Na', 'Cl']);
-
-    await user.click(screen.getByRole('button', { name: 'Ионная связь' }));
     createBond(atomByElement(container, 'Na'), atomByElement(container, 'Cl'));
+
+    await user.click(screen.getByLabelText('Связь (клик — меню)'));
+    await user.click(screen.getByRole('menuitem', { name: 'Ионная' }));
+
     inspect(atomByElement(container, 'Na'));
 
     const modal = screen.getByRole('dialog', { name: 'Просмотр результата' });

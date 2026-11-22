@@ -7,13 +7,15 @@ import { t } from '../i18n/ru';
 
 /**
  * Слой связей стола: SVG-линии между атомами.
- * FR-7: клик / Enter / Delete по связи разрывает её.
+ * FR-7 (v0.11): клик / правый клик / Enter по связи открывает её меню.
+ * Клик по связи — её контекстное меню (FR-7, v0.11).
  */
 
 interface BondLayerProps {
   atoms: Record<string, AtomInstance>;
   bonds: Record<string, Bond>;
-  onBreak: (bondId: string) => void;
+  /** FR-7 (v0.11): клик/Enter по связи открывает её контекстное меню. */
+  onMenu: (bondId: string) => void;
 }
 
 const OFFSETS: Record<number, number[]> = {
@@ -22,7 +24,7 @@ const OFFSETS: Record<number, number[]> = {
   3: [-6, 0, 6],
 };
 
-export function BondLayer({ atoms, bonds, onBreak }: BondLayerProps) {
+export function BondLayer({ atoms, bonds, onMenu }: BondLayerProps) {
   return (
     <svg className="pointer-events-none absolute inset-0 h-full w-full">
       {Object.values(bonds).map((bond) => {
@@ -63,10 +65,14 @@ export function BondLayer({ atoms, bonds, onBreak }: BondLayerProps) {
               strokeWidth={16}
               className="cursor-pointer"
               style={{ pointerEvents: 'stroke' }}
-              onClick={() => onBreak(bond.id)}
+              onClick={() => onMenu(bond.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                onMenu(bond.id);
+              }}
               onKeyDown={(e) => {
-                if (e.key === 'Delete' || e.key === 'Backspace' || e.key === 'Enter') {
-                  onBreak(bond.id);
+                if (e.key === 'Enter' || e.key === ' ') {
+                  onMenu(bond.id);
                 }
               }}
             />

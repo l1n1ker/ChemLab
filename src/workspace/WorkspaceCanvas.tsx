@@ -5,7 +5,6 @@
 import { useRef, useState } from 'react';
 import { deriveMolecules, type LabState, type LabStore } from '../domain/labStore';
 import { getElement } from '../domain/data/elements';
-import type { BondKind, BondOrder } from '../domain/types';
 import { freeValence } from '../domain/validation';
 import { fmt, Formula } from '../graph/format';
 import { rejectionMessage } from '../i18n/rejectionMessage';
@@ -18,6 +17,8 @@ import { BondLayer } from './BondLayer';
  * Никакой химии внутри — только команды в LabStore (раздел 9).
  * Клик по атому — карточка (FR-33); двойной клик — модалка результата (FR-34);
  * у молекул — компактная подпись (формула + молярная масса).
+ * Связь создаётся одинарной ковалентной; кратность/тип/удаление —
+ * в контекстном меню связи (FR-4/FR-7, v0.11).
  */
 
 interface WorkspaceCanvasProps {
@@ -29,17 +30,10 @@ interface WorkspaceCanvasProps {
   onInspect: (moleculeId: string) => void;
 }
 
-const ORDER_KEYS = [
-  { order: 1, key: 'workspace.bondOrder.single' },
-  { order: 2, key: 'workspace.bondOrder.double' },
-  { order: 3, key: 'workspace.bondOrder.triple' },
-] as const;
-
 export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, onInspect }: WorkspaceCanvasProps) {
-  const [bondOrder, setBondOrder] = useState<BondOrder>(1);
-  const [bondKind, setBondKind] = useState<BondKind>('covalent');
   const [bondDrag, setBondDrag] = useState<{ fromId: string; x: number; y: number } | null>(null);
   const [atomCardId, setAtomCardId] = useState<string | null>(null);
+  const [bondMenuId, setBondMenuId] = useState<string | null>(null);
   const bondDragRef = useRef(bondDrag);
   bondDragRef.current = bondDrag;
 
@@ -97,8 +91,9 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
 
   function onAtomPointerUp(atomId: string) {
     const current = bondDragRef.current;
+    // FR-4 (v0.11): новая связь — всегда одинарная ковалентная.
     if (current && current.fromId !== atomId) {
-      store.createBond(current.fromId, atomId, bondKind === 'ionic' ? 1 : bondOrder, bondKind);
+      store.createBond(current.fromId, atomId, 1, 'covalent');
     }
   }
 
@@ -115,40 +110,6 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
         >
           {t('shop.open')}
         </button>
-        <span className="ml-4 text-sm text-slate-300">{t('workspace.bondOrder')}:</span>
-        {ORDER_KEYS.map(({ order, key }) => (
-          <button
-            key={order}
-            type="button"
-            aria-label={t(key)}
-            aria-pressed={bondKind === 'covalent' && bondOrder === order}
-            onClick={() => {
-              setBondKind('covalent');
-              setBondOrder(order);
-            }}
-            className={`h-8 w-8 rounded-md font-semibold ${
-              bondKind === 'covalent' && bondOrder === order
-                ? 'bg-sky-500 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            {order}
-          </button>
-        ))}
-        {/* DR-4: ионная связь — явный режим (v0.6, Q1) */}
-        <button
-          type="button"
-          aria-label={t('workspace.bondKind.ionic')}
-          aria-pressed={bondKind === 'ionic'}
-          onClick={() => setBondKind('ionic')}
-          className={`h-8 rounded-md px-2 text-sm font-semibold ${
-            bondKind === 'ionic'
-              ? 'bg-violet-500 text-white'
-              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-          }`}
-        >
-          ⇄
-        </button>
       </div>
 
       <div
@@ -160,8 +121,14 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
         className="relative min-h-0 flex-1 overflow-hidden bg-slate-900"
         onClick={(e) => {
           const target = e.target as HTMLElement;
-          if (!target.closest('[data-atom-id]') && !target.closest('[data-atom-card]')) {
+          if (
+            !target.closest('[data-atom-id]') &&
+            !target.closest('[data-atom-card]') &&
+            !target.closest('[data-bond-id]') &&
+            !target.closest('[data-bond-menu]')
+          ) {
             setAtomCardId(null);
+            setBondMenuId(null);
           }
         }}
       >
@@ -171,7 +138,14 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
           </p>
         )}
 
-        <BondLayer atoms={state.atoms} bonds={state.bonds} onBreak={(id) => store.breakBond(id)} />
+        <BondLayer
+          atoms={state.atoms}
+          bonds={state.bonds}
+          onMenu={(id) => {
+            setAtomCardId(null);
+            setBondMenuId(id);
+          }}
+        />
 
         {dragSource && bondDrag && (
           <svg className="pointer-events-none absolute inset-0 h-full w-full">
@@ -265,6 +239,72 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
               </div>
             );
           })}
+
+        {/* FR-7 (v0.11): контекстное меню связи — кратность, тип, удаление */}
+        {bondMenuId && state.bonds[bondMenuId] && (() => {
+          const bond = state.bonds[bondMenuId];
+          const a = state.atoms[bond.atomIds[0]];
+          const b = state.atoms[bond.atomIds[1]];
+          const mid = { x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 };
+          return (
+            <div
+              data-bond-menu
+              role="menu"
+              aria-label={t('bond.menu.title')}
+              className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-lg bg-slate-800 p-1.5 shadow-xl ring-1 ring-slate-600"
+              style={{ left: mid.x, top: mid.y }}
+            >
+              <span className="px-1 text-[10px] text-slate-400">{t('bond.menu.order')}:</span>
+              {([1, 2, 3] as const).map((order) => (
+                <button
+                  key={order}
+                  type="button"
+                  role="menuitem"
+                  aria-label={t(`workspace.bondOrder.${order === 1 ? 'single' : order === 2 ? 'double' : 'triple'}`)}
+                  aria-pressed={bond.kind === 'covalent' && bond.order === order}
+                  className={`h-7 w-7 rounded text-xs font-bold ${
+                    bond.kind === 'covalent' && bond.order === order
+                      ? 'bg-sky-500 text-white'
+                      : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                  }`}
+                  onClick={() => {
+                    store.changeBond(bond.id, order, 'covalent');
+                    setBondMenuId(null);
+                  }}
+                >
+                  {order}
+                </button>
+              ))}
+              <button
+                type="button"
+                role="menuitem"
+                aria-pressed={bond.kind === 'ionic'}
+                className={`h-7 rounded px-2 text-xs font-semibold ${
+                  bond.kind === 'ionic'
+                    ? 'bg-violet-500 text-white'
+                    : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                }`}
+                onClick={() => {
+                  store.changeBond(bond.id, 1, 'ionic');
+                  setBondMenuId(null);
+                }}
+              >
+                {t('bond.menu.ionic')}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="h-7 rounded bg-red-800 px-2 text-xs font-semibold text-red-100 hover:bg-red-700"
+                onClick={() => {
+                  store.breakBond(bond.id);
+                  setBondMenuId(null);
+                }}
+              >
+                {t('bond.menu.delete')}
+              </button>
+            </div>
+          );
+        })()}
 
         {/* FR-33: карточка атома — поповер, не модалка */}
         {cardAtom && (

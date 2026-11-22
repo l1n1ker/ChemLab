@@ -138,3 +138,41 @@ export function checkBond(
 
   return { ok: true, existingBond: existing };
 }
+
+/**
+ * FR-7 (v0.11): смена кратности/типа существующей связи из контекстного меню.
+ * Семантика замены (не добавления, как DR-3): сама связь исключается из подсчёта,
+ * валидация — та же DR-1.
+ */
+export function checkBondUpdate(
+  atoms: Record<string, AtomInstance>,
+  bonds: Record<string, Bond>,
+  bondId: string,
+  order: BondOrder,
+  kind: BondKind,
+): BondCheck {
+  const bond = bonds[bondId];
+  if (!bond) return { ok: false, rejection: { code: 'same-atom' } };
+
+  const effectiveOrder = kind === 'ionic' ? 1 : order;
+  for (const atomId of bond.atomIds) {
+    const atom = atoms[atomId];
+    const element = getElement(atom.element);
+    const max = Math.max(...element.valences);
+    const current = usedValence(atomId, bonds, bondId);
+    if (current + effectiveOrder > max) {
+      const singleValence = element.valences.length === 1;
+      return {
+        ok: false,
+        rejection: {
+          code: singleValence ? 'monovalent' : 'valence-exceeded',
+          element: atom.element,
+          // Для сообщения — занятость с учётом редактируемой связи (до смены).
+          used: current + (bond.kind === 'ionic' ? 1 : bond.order),
+          max,
+        },
+      };
+    }
+  }
+  return { ok: true, existingBond: bond };
+}

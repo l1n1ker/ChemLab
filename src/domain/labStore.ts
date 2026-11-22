@@ -8,7 +8,7 @@ import { findCatalogMatch } from './matching';
 import { connectedComponents } from './moleculeGraph';
 import { oxidationStatesByElement } from './oxidation';
 import type { AtomInstance, Bond, BondKind, BondOrder, MoleculeView, Vec2 } from './types';
-import { checkBond, type BondRejection } from './validation';
+import { checkBond, checkBondUpdate, type BondRejection } from './validation';
 
 /**
  * LabStore — единственная точка входа UI в Domain Core (SPEC.md, раздел 9):
@@ -112,6 +112,23 @@ export class LabStore {
       bonds = { ...this.state.bonds, [bond.id]: bond };
     }
     this.setState({ ...this.state, bonds, lastRejection: null });
+    return { ok: true };
+  }
+
+  /** FR-7 (v0.11): смена кратности/типа существующей связи из контекстного меню. */
+  changeBond(bondId: string, order: BondOrder, kind: BondKind): CommandResult {
+    const check = checkBondUpdate(this.state.atoms, this.state.bonds, bondId, order, kind);
+    if (!check.ok) {
+      this.setState({ ...this.state, lastRejection: check.rejection });
+      return { ok: false, rejection: check.rejection };
+    }
+    const bond = this.state.bonds[bondId];
+    const updated: Bond = { ...bond, order: kind === 'ionic' ? 1 : order, kind };
+    this.setState({
+      ...this.state,
+      bonds: { ...this.state.bonds, [bondId]: updated },
+      lastRejection: null,
+    });
     return { ok: true };
   }
 
