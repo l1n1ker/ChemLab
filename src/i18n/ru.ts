@@ -9,6 +9,11 @@
 export const ru = {
   'app.title': 'Химическая лаборатория «Атомы и вещества»',
 
+  'theme.label': 'Тема оформления',
+  'theme.light': 'Светлая',
+  'theme.dark': 'Тёмная',
+  'theme.system': 'Системная',
+
   'palette.title': 'Магазин атомов',
   'palette.hint': 'Перетащите атом на стол или кликните по нему',
   'palette.substances': 'Готовые вещества',

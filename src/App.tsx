@@ -6,6 +6,7 @@ import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { deriveMolecules, LabStore } from './domain/labStore';
 import { ResultModal } from './graph/ResultModal';
 import { t } from './i18n/ru';
+import { ThemeSwitcher } from './ThemeSwitcher';
 import { AtomCardContent } from './workspace/AtomCard';
 import { getLayout } from './workspace/layouts';
 import { placeCart } from './domain/placement';
@@ -41,9 +42,11 @@ export function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 px-4 py-3">
+    <div className="flex h-screen flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
         <h1 className="text-lg font-bold">{t('app.title')}</h1>
+        {/* FR-38: выбор темы — справа вверху */}
+        <ThemeSwitcher />
       </header>
 
       <main className="flex min-h-0 flex-1">
@@ -84,7 +87,7 @@ export function App() {
           <AtomCardContent symbol={infoSymbol} layoutId={layoutId} />
           <button
             type="button"
-            className="mt-1 w-full rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+            className="mt-1 w-full rounded-md bg-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             onClick={() => setInfoSymbol(null)}
           >
             {t('result.close')}

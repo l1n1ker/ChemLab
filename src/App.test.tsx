@@ -4,7 +4,7 @@
 
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { App } from './App';
 
 /** Критерии приёмки FR-1…FR-8 и FR-28…FR-34 (SPEC.md, раздел 5) как тест-кейсы. */
@@ -591,5 +591,62 @@ describe('FR-13 (v0.15/v0.16): зона перетаскивается и рас
     expect(screen.getAllByLabelText('Связь (клик — меню)')).toHaveLength(1);
     const labels = container.querySelectorAll('[data-molecule-label]');
     expect(labels[0].textContent).toContain('HO');
+  });
+});
+
+describe('FR-38: тема оформления', () => {
+  function stubMatchMedia(matches: boolean) {
+    window.matchMedia = ((query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia;
+  }
+
+  afterEach(() => {
+    localStorage.clear();
+    document.documentElement.classList.remove('dark');
+    stubMatchMedia(false);
+  });
+
+  it('переключатель справа вверху: три режима, по умолчанию — системная', () => {
+    stubMatchMedia(false);
+    render(<App />);
+    const group = screen.getByRole('group', { name: 'Тема оформления' });
+    expect(within(group).getByRole('button', { name: 'Системная' })).toHaveAttribute('aria-pressed', 'true');
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+  });
+
+  it('выбор «Тёмная»/«Светлая» переключает класс dark и сохраняется', async () => {
+    stubMatchMedia(false);
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Тёмная' }));
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(localStorage.getItem('chemlab.theme')).toBe('dark');
+
+    await user.click(screen.getByRole('button', { name: 'Светлая' }));
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+    expect(localStorage.getItem('chemlab.theme')).toBe('light');
+  });
+
+  it('выбор применяется при загрузке (перезагрузка сохраняет светлую/тёмную)', () => {
+    stubMatchMedia(false);
+    localStorage.setItem('chemlab.theme', 'dark');
+    render(<App />);
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+  });
+
+  it('системная тема следует prefers-color-scheme ОС', () => {
+    stubMatchMedia(true);
+    localStorage.setItem('chemlab.theme', 'system');
+    render(<App />);
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 });
