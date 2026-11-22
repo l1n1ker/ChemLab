@@ -1,0 +1,23 @@
+ChemLab — interactive chemistry lab
+Copyright (C) 2026 ChemLab contributors
+
+Продукт распространяется под AGPL-3.0-only (см. LICENSE).
+Контент и данные (каталог веществ, тексты) — под CC-BY 4.0.
+
+Сторонние компоненты и их лицензии (правило LR-1, SPEC.md п. 13.4)
+====================================================================
+
+Runtime-зависимости:
+- React, React DOM (https://react.dev) — MIT
+- three.js (https://threejs.org) — MIT
+
+Инструменты сборки и тестирования (devDependencies):
+- Vite, @vitejs/plugin-react (https://vite.dev) — MIT
+- TypeScript (https://www.typescriptlang.org) — Apache-2.0
+- Tailwind CSS, @tailwindcss/vite (https://tailwindcss.com) — MIT
+- Vitest (https://vitest.dev) — MIT
+- jsdom (https://github.com/jsdom/jsdom) — MIT
+- Testing Library (@testing-library/react, jest-dom, user-event) — MIT
+
+Заимствованного кода на данный момент нет; вся химия и UI —
+собственная реализация по SPEC.md.
