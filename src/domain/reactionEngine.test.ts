@@ -111,4 +111,27 @@ describe('FR-13/FR-17: запуск на столе — продукты ста�
     expect(after.filter((m) => m.substance?.id === 'h2o')).toHaveLength(2);
     expect(after.filter((m) => m.substance?.id === 'h2')).toHaveLength(1); // избыток
   });
+
+  it('FR-17 (v0.17): продукты разнесены — центроиды молекул не ближе 140 px', () => {
+    const lab = new LabStore();
+    lab.addSubstance('h2', { x: 60, y: 470 });
+    lab.addSubstance('h2', { x: 140, y: 470 });
+    lab.addSubstance('o2', { x: 220, y: 470 });
+
+    const before = deriveMolecules(lab.getSnapshot());
+    lab.runReaction(before.map((m) => m.id), { origin: { x: 60, y: 500 }, width: 340 });
+
+    const state = lab.getSnapshot();
+    const centroids = deriveMolecules(state).map((m) => {
+      const points = m.atomIds.map((id) => state.atoms[id].position);
+      return {
+        x: points.reduce((s, p) => s + p.x, 0) / points.length,
+        y: points.reduce((s, p) => s + p.y, 0) / points.length,
+      };
+    });
+    expect(centroids).toHaveLength(2);
+    const dx = Math.abs(centroids[0].x - centroids[1].x);
+    const dy = Math.abs(centroids[0].y - centroids[1].y);
+    expect(Math.max(dx, dy)).toBeGreaterThanOrEqual(140);
+  });
 });

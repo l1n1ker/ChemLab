@@ -33,25 +33,30 @@ export function placeCart(
 ): Vec2[] {
   const taken = [...occupied];
   const result: Vec2[] = [];
+  // Правая граница — абсолютная координата: start.x + ширина области (v0.17).
+  const maxX = start.x + Math.max(areaWidth - 60, PLACEMENT_STEP);
   let x = start.x;
   let y = start.y;
-  const maxX = Math.max(areaWidth - 60, start.x + PLACEMENT_STEP);
+  // Высота ряда — по самой крупной единице в ряду: молекулы не наползают друг на друга (v0.17).
+  let rowHeight = 0;
+
+  const wrap = () => {
+    x = start.x;
+    y += rowHeight;
+    rowHeight = 0;
+  };
 
   for (const item of items) {
+    const size = Math.max(PLACEMENT_STEP, item.width) + 10;
+    rowHeight = Math.max(rowHeight, size);
     while (!isFree({ x, y }, taken)) {
       x += PLACEMENT_STEP;
-      if (x > maxX) {
-        x = start.x;
-        y += PLACEMENT_STEP + 10;
-      }
+      if (x > maxX) wrap();
     }
     result.push({ x, y });
     taken.push({ x, y });
     x += Math.max(PLACEMENT_STEP, item.width);
-    if (x > maxX) {
-      x = start.x;
-      y += PLACEMENT_STEP + 10;
-    }
+    if (x > maxX) wrap();
   }
   return result;
 }
