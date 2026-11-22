@@ -26,6 +26,7 @@ export const ru = {
   'error.monovalent.H': 'Водород одновалентен',
   'error.monovalent.other': 'У атома {element} уже заняты все валентности ({used} из {max})',
   'error.valence-exceeded': 'У атома {element} не хватает валентности: нужно {used}, доступно {max}',
+  'error.dismiss': 'Скрыть сообщение',
 
   'properties.title': 'Свойства вещества',
   'properties.none': 'Выберите молекулу на столе',

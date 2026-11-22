@@ -56,11 +56,13 @@ function findIsomorphism(mol: GraphView, ref: GraphView): number[] | null {
       if (usedRef[refIdx]) continue;
       if (mol.elements[molIdx] !== ref.elements[refIdx]) continue;
       assignment[molIdx] = refIdx;
+      usedRef[refIdx] = true;
       if (consistent(molIdx, refIdx)) {
         const result = search(molIdx + 1);
         if (result) return result;
       }
       assignment[molIdx] = -1;
+      usedRef[refIdx] = false;
     }
     return null;
   }
