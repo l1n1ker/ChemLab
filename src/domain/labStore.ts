@@ -123,6 +123,17 @@ export class LabStore {
     this.setState({ ...this.state, bonds, lastRejection: null });
   }
 
+  /** FR-34 (приём FR-27): разобрать молекулу на атомы — удалить все её связи. */
+  dismantleMolecule(moleculeId: string): void {
+    const component = connectedComponents(this.state.atoms, this.state.bonds).find(
+      (c) => c.id === moleculeId,
+    );
+    if (!component) return;
+    const bonds = { ...this.state.bonds };
+    for (const id of component.bondIds) delete bonds[id];
+    this.setState({ ...this.state, bonds, lastRejection: null });
+  }
+
   /** Выбор молекулы по любому её атому; null — снять выбор. */
   selectMoleculeOf(atomId: string | null): void {
     if (atomId === null) {
