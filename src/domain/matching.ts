@@ -20,16 +20,20 @@ export interface CatalogMatch {
 
 interface GraphView {
   elements: string[];
-  bonds: Map<string, number>;
+  /** Пара атомов → «кратность:тип»; тип связи участвует в сопоставлении (DR-4/DR-6). */
+  bonds: Map<string, string>;
 }
 
 function bondKey(i: number, j: number): string {
   return i < j ? `${i}:${j}` : `${j}:${i}`;
 }
 
-function toGraph(atoms: { element: string }[], pairs: [number, number, number][]): GraphView {
-  const bonds = new Map<string, number>();
-  for (const [i, j, order] of pairs) bonds.set(bondKey(i, j), order);
+function toGraph(
+  atoms: { element: string }[],
+  pairs: [number, number, number, string][],
+): GraphView {
+  const bonds = new Map<string, string>();
+  for (const [i, j, order, kind] of pairs) bonds.set(bondKey(i, j), `${order}:${kind}`);
   return { elements: atoms.map((a) => a.element), bonds };
 }
 
@@ -43,9 +47,9 @@ function findIsomorphism(mol: GraphView, ref: GraphView): number[] | null {
   function consistent(molIdx: number, refIdx: number): boolean {
     for (let m = 0; m < n; m++) {
       if (assignment[m] === -1) continue;
-      const molOrder = mol.bonds.get(bondKey(molIdx, m)) ?? 0;
-      const refOrder = ref.bonds.get(bondKey(refIdx, assignment[m])) ?? 0;
-      if (molOrder !== refOrder) return false;
+      const molBond = mol.bonds.get(bondKey(molIdx, m)) ?? '';
+      const refBond = ref.bonds.get(bondKey(refIdx, assignment[m])) ?? '';
+      if (molBond !== refBond) return false;
     }
     return true;
   }
@@ -79,20 +83,21 @@ export function findCatalogMatch(
   bonds: Bond[],
 ): CatalogMatch | null {
   const indexOf = new Map(atoms.map((atom, i) => [atom.id, i]));
-  const molPairs: [number, number, number][] = [];
+  const molPairs: [number, number, number, string][] = [];
   for (const bond of bonds) {
     const i = indexOf.get(bond.atomIds[0]);
     const j = indexOf.get(bond.atomIds[1]);
     if (i === undefined || j === undefined) return null;
-    molPairs.push([i, j, bond.order]);
+    molPairs.push([i, j, bond.order, bond.kind]);
   }
   const mol = toGraph(atoms, molPairs);
 
   for (const substance of SUBSTANCES) {
-    const refPairs: [number, number, number][] = substance.structure.bonds.map((b) => [
+    const refPairs: [number, number, number, string][] = substance.structure.bonds.map((b) => [
       b.atoms[0],
       b.atoms[1],
       b.order,
+      b.kind,
     ]);
     const ref = toGraph(substance.structure.atoms, refPairs);
     const perm = findIsomorphism(mol, ref);

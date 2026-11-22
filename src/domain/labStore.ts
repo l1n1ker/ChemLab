@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { countElements, hillFormula, massFractions, molarMass } from './chemistry';
+import { buildMoleculeFromSubstance } from './builder';
 import { findCatalogMatch } from './matching';
 import { connectedComponents } from './moleculeGraph';
-import type { AtomInstance, Bond, BondOrder, MoleculeView, Vec2 } from './types';
+import { oxidationStatesByElement } from './oxidation';
+import type { AtomInstance, Bond, BondKind, BondOrder, MoleculeView, Vec2 } from './types';
 import { checkBond, type BondRejection } from './validation';
 
 /**
@@ -62,6 +64,16 @@ export class LabStore {
     return atom.id;
   }
 
+  /** FR-2: готовое вещество из магазина на стол как целая молекула. */
+  addSubstance(substanceId: string, position: Vec2): void {
+    const { atoms, bonds } = buildMoleculeFromSubstance(substanceId, position, newId);
+    const atomsRecord = { ...this.state.atoms };
+    for (const atom of atoms) atomsRecord[atom.id] = atom;
+    const bondsRecord = { ...this.state.bonds };
+    for (const bond of bonds) bondsRecord[bond.id] = bond;
+    this.setState({ ...this.state, atoms: atomsRecord, bonds: bondsRecord, lastRejection: null });
+  }
+
   /** Перемещение атома вместе со всей его молекулой (связная группа — единый объект, 4.2). */
   moveMoleculeOf(atomId: string, delta: Vec2): void {
     const component = connectedComponents(this.state.atoms, this.state.bonds).find((c) =>
@@ -77,12 +89,12 @@ export class LabStore {
   }
 
   /**
-   * FR-4/FR-5: создание связи с выбором кратности; при нарушении
-   * валентности — отказ с типизированной причиной.
-   * DR-3: повторная связь той же пары повышает кратность существующей.
+   * FR-4/FR-5: создание связи с выбором кратности или типа «ионная» (DR-4);
+   * при нарушении валентности — отказ с типизированной причиной.
+   * DR-3: повторная ковалентная связь той же пары повышает кратность существующей.
    */
-  createBond(aId: string, bId: string, order: BondOrder): CommandResult {
-    const check = checkBond(this.state.atoms, this.state.bonds, aId, bId, order);
+  createBond(aId: string, bId: string, order: BondOrder, kind: BondKind = 'covalent'): CommandResult {
+    const check = checkBond(this.state.atoms, this.state.bonds, aId, bId, order, kind);
     if (!check.ok) {
       this.setState({ ...this.state, lastRejection: check.rejection });
       return { ok: false, rejection: check.rejection };
@@ -96,7 +108,7 @@ export class LabStore {
         [existing.id]: { ...existing, order: (existing.order + order) as BondOrder },
       };
     } else {
-      const bond: Bond = { id: newId(), atomIds: [aId, bId], order, kind: 'covalent' };
+      const bond: Bond = { id: newId(), atomIds: [aId, bId], order, kind };
       bonds = { ...this.state.bonds, [bond.id]: bond };
     }
     this.setState({ ...this.state, bonds, lastRejection: null });
@@ -148,6 +160,7 @@ export function deriveMolecules(state: LabState): MoleculeView[] {
       fractions: massFractions(counts),
       substance: match?.substance ?? null,
       isHypothetical: match === null,
+      oxidationStates: oxidationStatesByElement(atoms, bonds),
     };
   });
 }

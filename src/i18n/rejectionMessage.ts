@@ -12,6 +12,10 @@ export function rejectionMessage(rejection: BondRejection): string {
       return t('error.same-atom');
     case 'order-overflow':
       return t('error.order-overflow');
+    case 'bond-kind-mismatch':
+      return t('error.bond-kind-mismatch');
+    case 'ionic-exists':
+      return t('error.ionic-exists');
     case 'monovalent':
       return rejection.element === 'H'
         ? t('error.monovalent.H')
