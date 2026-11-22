@@ -2,7 +2,7 @@
 // Copyright (C) 2026 ChemLab contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { Vec2 } from '../domain/types';
+import type { Vec2 } from './types';
 
 /**
  * FR-28/FR-31: авторазмещение содержимого корзины на столе —
@@ -29,18 +29,19 @@ export function placeCart(
   items: PlacementItem[],
   occupied: Vec2[],
   areaWidth: number,
+  start: Vec2 = PLACEMENT_START,
 ): Vec2[] {
   const taken = [...occupied];
   const result: Vec2[] = [];
-  let x = PLACEMENT_START.x;
-  let y = PLACEMENT_START.y;
-  const maxX = Math.max(areaWidth - 60, PLACEMENT_START.x + PLACEMENT_STEP);
+  let x = start.x;
+  let y = start.y;
+  const maxX = Math.max(areaWidth - 60, start.x + PLACEMENT_STEP);
 
   for (const item of items) {
     while (!isFree({ x, y }, taken)) {
       x += PLACEMENT_STEP;
       if (x > maxX) {
-        x = PLACEMENT_START.x;
+        x = start.x;
         y += PLACEMENT_STEP + 10;
       }
     }
@@ -48,7 +49,7 @@ export function placeCart(
     taken.push({ x, y });
     x += Math.max(PLACEMENT_STEP, item.width);
     if (x > maxX) {
-      x = PLACEMENT_START.x;
+      x = start.x;
       y += PLACEMENT_STEP + 10;
     }
   }

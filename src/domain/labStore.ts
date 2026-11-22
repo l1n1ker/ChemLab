@@ -7,6 +7,8 @@ import { buildMoleculeFromSubstance } from './builder';
 import { findCatalogMatch } from './matching';
 import { connectedComponents } from './moleculeGraph';
 import { oxidationStatesByElement } from './oxidation';
+import { placeCart } from './placement';
+import { planRun, type RunResult } from './reactionEngine';
 import type { AtomInstance, Bond, BondKind, BondOrder, MoleculeView, Vec2 } from './types';
 import { checkBond, checkBondUpdate, type BondRejection } from './validation';
 
@@ -22,6 +24,8 @@ export interface LabState {
   selectedMoleculeId: string | null;
   /** Последний отказ валидации для показа в UI (FR-5). */
   lastRejection: BondRejection | null;
+  /** Исход последнего запуска реакции (FR-13…16). */
+  reactionOutcome: RunResult | null;
 }
 
 export type CommandResult = { ok: true } | { ok: false; rejection: BondRejection };
@@ -38,6 +42,7 @@ export class LabStore {
     bonds: {},
     selectedMoleculeId: null,
     lastRejection: null,
+    reactionOutcome: null,
   };
   private listeners = new Set<Listener>();
 
@@ -130,6 +135,51 @@ export class LabStore {
       lastRejection: null,
     });
     return { ok: true };
+  }
+
+  /**
+   * FR-13…17: запуск реакции. Израсходованные молекулы снимаются со стола,
+   * продукты размещаются как реальные молекулы рядком в зоне реакции,
+   * избыток остаётся. Исход доступен в state.reactionOutcome.
+   */
+  runReaction(moleculeIds: string[], area: { origin: Vec2; width: number }): RunResult {
+    const molecules = deriveMolecules(this.state).filter((m) => moleculeIds.includes(m.id));
+    const result = planRun(
+      molecules.map((m) => ({ id: m.id, substanceId: m.substance?.id ?? null })),
+    );
+
+    let { atoms, bonds } = this.state;
+    if (result.ok) {
+      const consumed = new Set(result.consumeMoleculeIds);
+      const components = connectedComponents(atoms, bonds).filter((c) => consumed.has(c.id));
+      atoms = { ...atoms };
+      bonds = { ...bonds };
+      for (const component of components) {
+        for (const atomId of component.atomIds) delete atoms[atomId];
+        for (const bondId of component.bondIds) delete bonds[bondId];
+      }
+      // FR-17: продукты появляются на столе как реальные молекулы.
+      const occupied = Object.values(atoms).map((a) => a.position);
+      const positions = placeCart(
+        result.productSubstanceIds.map(() => ({ width: 200 })),
+        occupied,
+        area.width,
+        area.origin,
+      );
+      result.productSubstanceIds.forEach((substanceId, i) => {
+        const built = buildMoleculeFromSubstance(substanceId, positions[i], newId);
+        for (const atom of built.atoms) atoms[atom.id] = atom;
+        for (const bond of built.bonds) bonds[bond.id] = bond;
+      });
+    }
+
+    this.setState({ ...this.state, atoms, bonds, reactionOutcome: result });
+    return result;
+  }
+
+  clearReactionOutcome(): void {
+    if (this.state.reactionOutcome === null) return;
+    this.setState({ ...this.state, reactionOutcome: null });
   }
 
   /** FR-34 (v0.12): копия молекулы на столе — структурный дубликат со сдвигом. */
