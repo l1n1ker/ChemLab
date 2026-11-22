@@ -168,12 +168,12 @@ export function ReactionZone({ store, state, molecules }: ReactionZoneProps) {
     <>
       <div
         data-testid="reaction-zone"
-        className="absolute rounded-xl border-2 border-dashed border-emerald-700/60"
+        className="pointer-events-none absolute rounded-xl border-2 border-dashed border-emerald-700/60"
         style={{ left: zone.x, top: zone.y, width: zone.width, height: zone.height }}
       >
         <div
           data-testid="reaction-zone-header"
-          className="flex cursor-move items-center justify-between px-3 py-1.5"
+          className="pointer-events-auto flex cursor-move items-center justify-between px-3 py-1.5"
           style={{ touchAction: 'none' }}
           onPointerDown={onHeaderPointerDown}
         >
@@ -197,7 +197,7 @@ export function ReactionZone({ store, state, molecules }: ReactionZoneProps) {
         </div>
         <span
           data-testid="reaction-zone-resize"
-          className="absolute bottom-0 right-0 h-4 w-4 cursor-nwse-resize rounded-tl-md bg-emerald-700/60"
+          className="pointer-events-auto absolute bottom-0 right-0 h-4 w-4 cursor-nwse-resize rounded-tl-md bg-emerald-700/60"
           style={{ touchAction: 'none' }}
           onPointerDown={onResizePointerDown}
         />
