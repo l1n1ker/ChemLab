@@ -517,3 +517,85 @@ describe('FR-13…17 / US-3: зона реакции', () => {
     expect(atomNodes(container)).toHaveLength(2);
   });
 });
+
+describe('FR-13 (v0.15): зона перетаскивается, растягивается, молекулы заморожены', () => {
+  function dragBy(node: HTMLElement, dx: number, dy: number) {
+    fireEvent.pointerDown(node, { clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: dx, clientY: dy });
+    fireEvent.pointerUp(window, { clientX: dx, clientY: dy });
+  }
+
+  async function placeSubstances(user: ReturnType<typeof userEvent.setup>, ids: string[]) {
+    await user.click(screen.getByRole('button', { name: 'Магазин' }));
+    await user.click(screen.getByRole('tab', { name: 'Вещества' }));
+    for (const id of ids) {
+      await user.click(card(id));
+    }
+    await user.click(screen.getByRole('button', { name: 'Готово' }));
+  }
+
+  it('заголовок перетаскивает зону', () => {
+    render(<App />);
+    const header = screen.getByTestId('reaction-zone-header');
+    dragBy(header, 50, 30);
+    const zone = screen.getByTestId('reaction-zone');
+    expect(zone.style.left).toBe('66px');
+    expect(zone.style.top).toBe('460px');
+  });
+
+  it('угол растягивает зону; размер не меньше минимального', () => {
+    render(<App />);
+    const handle = screen.getByTestId('reaction-zone-resize');
+    dragBy(handle, 60, 40);
+    let zone = screen.getByTestId('reaction-zone');
+    expect(zone.style.width).toBe('460px');
+    expect(zone.style.height).toBe('290px');
+
+    dragBy(handle, -500, -500);
+    zone = screen.getByTestId('reaction-zone');
+    expect(zone.style.width).toBe('200px');
+    expect(zone.style.height).toBe('140px');
+  });
+
+  it('молекула в зоне заморожена: не двигается, показывается индикатор; уведённая зона её освобождает', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await placeSubstances(user, ['h2o']);
+
+    // Затаскиваем воду в зону.
+    let atom = atomNodes(container)[0];
+    dragBy(atom, 0, 420);
+    atom = atomNodes(container)[0];
+    const frozenLeft = atom.style.left;
+    const frozenTop = atom.style.top;
+
+    expect(screen.getByTestId('reaction-zone-header').textContent).toContain('заморожено: 1');
+
+    // Пытаемся сдвинуть — молекула стоит на месте.
+    dragBy(atom, 300, -300);
+    atom = atomNodes(container)[0];
+    expect(atom.style.left).toBe(frozenLeft);
+    expect(atom.style.top).toBe(frozenTop);
+
+    // Уводим зону за заголовок — молекула освобождается.
+    dragBy(screen.getByTestId('reaction-zone-header'), 0, 500);
+    expect(screen.getByTestId('reaction-zone-header').textContent).not.toContain('заморожено');
+    atom = atomNodes(container)[0];
+    dragBy(atom, 30, 20);
+    expect(atomNodes(container)[0].style.left).not.toBe(frozenLeft);
+  });
+
+  it('удаление связи замороженной молекулы отклоняется с объяснением', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await placeSubstances(user, ['h2o']);
+    dragBy(atomNodes(container)[0], 0, 420);
+
+    await user.click(screen.getAllByLabelText('Связь (клик — меню)')[0]);
+    await user.click(screen.getByRole('menuitem', { name: 'Удалить связь' }));
+
+    expect(screen.getByRole('alert').textContent).toContain('заморожена');
+    // Обе связи на месте.
+    expect(screen.getAllByLabelText('Связь (клик — меню)')).toHaveLength(2);
+  });
+});

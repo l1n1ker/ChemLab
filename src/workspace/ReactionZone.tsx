@@ -2,7 +2,7 @@
 // Copyright (C) 2026 ChemLab contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { LabState, LabStore } from '../domain/labStore';
+import { frozenMoleculeIds, type LabState, type LabStore } from '../domain/labStore';
 import type { MoleculeView } from '../domain/types';
 import type { ReactionReportEntry, RunResult } from '../domain/reactionEngine';
 import { getSubstance } from '../domain/data/substances';
@@ -11,10 +11,9 @@ import { t } from '../i18n/ru';
 
 /**
  * FR-13…17: зона реакции на столе + отчёт.
- * Молекула считается в зоне, если её центроид внутри рамки.
+ * v0.15: зону можно перетаскивать за заголовок и растягивать за угол;
+ * молекулы с центроидом внутри зоны заморожены (не двигаются, связи не рвутся).
  */
-
-export const REACTION_ZONE = { x: 16, y: 430, width: 400, height: 250 };
 
 interface ReactionZoneProps {
   store: LabStore;
@@ -22,16 +21,12 @@ interface ReactionZoneProps {
   molecules: MoleculeView[];
 }
 
-function inZone(molecule: MoleculeView, state: LabState): boolean {
+function centroidInZone(molecule: MoleculeView, state: LabState): boolean {
+  const zone = state.zone;
   const points = molecule.atomIds.map((id) => state.atoms[id].position);
   const cx = points.reduce((s, p) => s + p.x, 0) / points.length;
   const cy = points.reduce((s, p) => s + p.y, 0) / points.length;
-  return (
-    cx >= REACTION_ZONE.x &&
-    cx <= REACTION_ZONE.x + REACTION_ZONE.width &&
-    cy >= REACTION_ZONE.y &&
-    cy <= REACTION_ZONE.y + REACTION_ZONE.height
-  );
+  return cx >= zone.x && cx <= zone.x + zone.width && cy >= zone.y && cy <= zone.y + zone.height;
 }
 
 function EntryLine({ entry, highlight }: { entry: ReactionReportEntry; highlight?: boolean }) {
@@ -134,39 +129,82 @@ function Outcome({ outcome, onClose }: { outcome: RunResult; onClose: () => void
 }
 
 export function ReactionZone({ store, state, molecules }: ReactionZoneProps) {
-  const reactants = molecules.filter((m) => inZone(m, state));
+  const zone = state.zone;
+  const reactants = molecules.filter((m) => centroidInZone(m, state));
+  const frozenCount = frozenMoleculeIds(state).size;
+
+  // v0.15: перетаскивание зоны за заголовок.
+  function onHeaderPointerDown(e: React.PointerEvent) {
+    e.stopPropagation();
+    const drag = { lastX: e.clientX, lastY: e.clientY };
+    const onMove = (ev: PointerEvent) => {
+      store.moveZoneBy({ x: ev.clientX - drag.lastX, y: ev.clientY - drag.lastY });
+      drag.lastX = ev.clientX;
+      drag.lastY = ev.clientY;
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
+  // v0.15: растягивание за правый нижний угол.
+  function onResizePointerDown(e: React.PointerEvent) {
+    e.stopPropagation();
+    const start = { x: e.clientX, y: e.clientY, width: zone.width, height: zone.height };
+    const onMove = (ev: PointerEvent) => {
+      store.resizeZone(start.width + ev.clientX - start.x, start.height + ev.clientY - start.y);
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
 
   return (
     <>
       <div
         data-testid="reaction-zone"
         className="absolute rounded-xl border-2 border-dashed border-emerald-700/60"
-        style={{
-          left: REACTION_ZONE.x,
-          top: REACTION_ZONE.y,
-          width: REACTION_ZONE.width,
-          height: REACTION_ZONE.height,
-        }}
+        style={{ left: zone.x, top: zone.y, width: zone.width, height: zone.height }}
       >
-        <div className="flex items-center justify-between px-3 py-1.5">
-          <span className="text-xs font-semibold text-emerald-500">{t('reaction.zone')}</span>
+        <div
+          data-testid="reaction-zone-header"
+          className="flex cursor-move items-center justify-between px-3 py-1.5"
+          style={{ touchAction: 'none' }}
+          onPointerDown={onHeaderPointerDown}
+        >
+          <span className="text-xs font-semibold text-emerald-500 select-none">
+            {t('reaction.zone')}
+            {frozenCount > 0 && (
+              <span className="ml-2 text-sky-300">❄ {t('reaction.frozen', { count: frozenCount })}</span>
+            )}
+          </span>
           <button
             type="button"
             disabled={reactants.length === 0}
             className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={() =>
               store.runReaction(
                 reactants.map((m) => m.id),
-                {
-                  origin: { x: REACTION_ZONE.x + 40, y: REACTION_ZONE.y + 60 },
-                  width: REACTION_ZONE.width - 60,
-                },
+                { origin: { x: zone.x + 40, y: zone.y + 60 }, width: zone.width - 60 },
               )
             }
           >
             {t('reaction.run')}
           </button>
         </div>
+        <span
+          data-testid="reaction-zone-resize"
+          className="absolute bottom-0 right-0 h-4 w-4 cursor-nwse-resize rounded-tl-md bg-emerald-700/60"
+          style={{ touchAction: 'none' }}
+          onPointerDown={onResizePointerDown}
+        />
       </div>
 
       {state.reactionOutcome && (

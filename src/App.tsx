@@ -8,7 +8,7 @@ import { ResultModal } from './graph/ResultModal';
 import { t } from './i18n/ru';
 import { AtomCardContent } from './workspace/AtomCard';
 import { getLayout } from './workspace/layouts';
-import { placeCart } from './workspace/placement';
+import { placeCart } from './domain/placement';
 import { ShopModal, type CartEntry } from './workspace/ShopModal';
 import { WorkspaceCanvas } from './workspace/WorkspaceCanvas';
 
