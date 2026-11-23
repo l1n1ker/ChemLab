@@ -650,3 +650,55 @@ describe('FR-38: тема оформления', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 });
+
+describe('FR-25/FR-27 / US-7: конструктор по формуле', () => {
+  async function buildByFormula(user: ReturnType<typeof userEvent.setup>, query: string) {
+    const input = screen.getByRole('textbox', { name: 'Собрать' });
+    await user.clear(input);
+    await user.type(input, query);
+    await user.click(screen.getByRole('button', { name: 'Собрать' }));
+  }
+
+  it('US-7: ввод H₂SO₄ → молекула серной кислоты на столе; её можно разобрать (FR-27)', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await buildByFormula(user, 'H2SO4');
+
+    // 7 атомов, подпись молекулы с формулой.
+    expect(atomNodes(container)).toHaveLength(7);
+    expect(container.querySelector('[data-molecule-label]')!.textContent).toContain('H2O4S');
+
+    // Модалка результата: распознано как серная кислота.
+    inspect(atomNodes(container)[0]);
+    const modal = screen.getByRole('dialog', { name: 'Просмотр результата' });
+    expect(modal.textContent).toContain('Серная кислота');
+
+    // FR-27: построенная молекула равноправна — разбираем на атомы.
+    await user.click(screen.getByRole('button', { name: 'Разобрать на атомы' }));
+    expect(atomNodes(container)).toHaveLength(7);
+    expect(container.querySelectorAll('[data-molecule-label]')).toHaveLength(0);
+  });
+
+  it('толерантный ввод: OH2 → вода', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await buildByFormula(user, 'OH2');
+    expect(atomNodes(container)).toHaveLength(3);
+    expect(container.querySelector('[data-molecule-label]')!.textContent).toContain('H2O');
+  });
+
+  it('ввод по названию: «Серная кислота» → H₂SO₄', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await buildByFormula(user, 'Серная кислота');
+    expect(container.querySelector('[data-molecule-label]')!.textContent).toContain('H2O4S');
+  });
+
+  it('нет в каталоге → честный отказ (P1), стол не меняется', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await buildByFormula(user, 'XeF4');
+    expect(screen.getByRole('alert').textContent).toContain('не выдумываем');
+    expect(atomNodes(container)).toHaveLength(0);
+  });
+});

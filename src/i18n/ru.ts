@@ -19,6 +19,11 @@ export const ru = {
   'palette.substances': 'Готовые вещества',
 
   'workspace.title': 'Рабочий стол',
+  'builder.placeholder': 'Формула или название: H2O, H₂SO₄…',
+  'builder.submit': 'Собрать',
+  'builder.isomers': 'Одна формула — несколько веществ. Выберите структуру:',
+  'builder.cancel': 'Отмена',
+  'builder.notFound': 'В каталоге нет такого вещества — структуру не выдумываем. Соберите вручную из атомов.',
   'workspace.bondOrder.single': 'Одинарная',
   'workspace.bondOrder.double': 'Двойная',
   'workspace.bondOrder.triple': 'Тройная',

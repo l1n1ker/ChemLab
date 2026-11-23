@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import { deriveMolecules, type LabState, type LabStore } from '../domain/labStore';
 import { getElement } from '../domain/data/elements';
 import { getPeriodicEntry } from '../domain/data/periodicTable';
+import { placeCart } from '../domain/placement';
 import { freeValence } from '../domain/validation';
 import { fmt, Formula } from '../graph/format';
 import { rejectionMessage } from '../i18n/rejectionMessage';
@@ -13,6 +14,7 @@ import { t } from '../i18n/ru';
 import { AtomCardContent } from './AtomCard';
 import { BondLayer } from './BondLayer';
 import { elementColor } from './elementColors';
+import { FormulaBuilder } from './FormulaBuilder';
 import { ReactionZone } from './ReactionZone';
 
 /**
@@ -103,9 +105,16 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
   const dragSource = bondDrag ? state.atoms[bondDrag.fromId] : null;
   const cardAtom = atomCardId ? state.atoms[atomCardId] : null;
 
+  // FR-25: конструктор по формуле размещает молекулу на свободное место.
+  function handleBuild(substanceId: string) {
+    const occupied = Object.values(state.atoms).map((a) => a.position);
+    const [position] = placeCart([{ width: 200 }], occupied, localRef.current?.clientWidth || 800);
+    store.addSubstance(substanceId, position);
+  }
+
   return (
     <section aria-label={t('workspace.title')} className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2 dark:border-slate-700">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-2 dark:border-slate-700">
         <button
           type="button"
           className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500"
@@ -113,6 +122,8 @@ export function WorkspaceCanvas({ store, state, innerRef, layoutId, onOpenShop, 
         >
           {t('shop.open')}
         </button>
+        {/* FR-25: конструктор по формуле */}
+        <FormulaBuilder onBuild={handleBuild} />
       </div>
 
       <div
