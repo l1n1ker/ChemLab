@@ -213,6 +213,20 @@ export const SUBSTANCES: Substance[] = [
     },
   },
   {
+    id: 'h2so4', formula: 'H2SO4', name: 'Серная кислота', molarMass: mm([['H', 2], ['S', 1], ['O', 4]]),
+    class: 'acid', stateAtSTP: 'liquid',
+    // bp опущена (P1): кипит с разложением (~337 °C).
+    properties: { mp: 10, density: 1.83, densityUnit: 'g/cm3' },
+    structure: {
+      atoms: [atom('S'), atom('O'), atom('O'), atom('O'), atom('O'), atom('H'), atom('H')],
+      bonds: [
+        bond(0, 1, 2), bond(0, 2, 2),
+        bond(0, 3, 1), bond(0, 4, 1),
+        bond(3, 5, 1), bond(4, 6, 1),
+      ],
+    },
+  },
+  {
     id: 'no', formula: 'NO', name: 'Монооксид азота', molarMass: mm([['N', 1], ['O', 1]]),
     class: 'oxide', stateAtSTP: 'gas',
     properties: { mp: -164, bp: -152, density: 1.34, densityUnit: 'g/L' },
